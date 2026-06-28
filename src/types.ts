@@ -1,3 +1,5 @@
+import type { SpendStore } from './store.js';
+
 /** 한 번의 LLM 호출이 쓴 토큰 수. 제공자가 응답의 usage로 알려준다. */
 export interface Usage {
   input: number;
@@ -8,8 +10,18 @@ export interface Usage {
 export interface GuardOptions {
   /** 비용을 묶는 단위(예: 'agent-worker'). */
   project: string;
-  /** 하루 하드 캡(USD). 초과하면 다음 호출을 막는다. */
+  /** 하루 하드 캡(USD). 초과하면 호출을 막는다. */
   dailyCapUSD: number;
   /** 캡 초과 시 동작. 기본 'block'(throw) / 'warn'(경고만). */
   onCap?: 'block' | 'warn';
+  /**
+   * 지출 저장소. 기본은 프로세스 공유 MemoryStore.
+   * 여러 인스턴스가 캡을 공유하려면 redisStore 등을 넘긴다.
+   */
+  store?: SpendStore;
+  /**
+   * (선택) 호출 전 usage 추정기. 주면 "이 호출이 캡을 넘길지"를 호출 전에 판단해
+   * 넘기는 호출 자체를 차단(overshoot 방지). 없으면 캡 초과 후 '다음' 호출을 차단.
+   */
+  estimateUsage?: (args: { model: string; [k: string]: unknown }) => Usage;
 }

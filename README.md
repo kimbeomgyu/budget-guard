@@ -56,8 +56,45 @@ guard(client, opts, { usageOf: (res) => ({ input: res.in, output: res.out }) });
 ```ts
 import { spendReport } from 'budget-guard';
 
-spendReport('my-app');
+await spendReport('my-app'); // async
 // → { chat: 2.41, summarize: 0.88 }   (today, in USD)
+```
+
+## Shared caps across instances (Redis)
+
+By default the ledger lives in memory (per process) — great for a single script, worker, or agent. Running multiple instances? Pass a shared store so they enforce **one cap together** and survive restarts:
+
+```ts
+import { createClient } from 'redis';
+import { guard, redisStore } from 'budget-guard';
+
+const redis = createClient();
+await redis.connect();
+
+const ai = guard(openai.chat.completions, {
+  project: 'my-app',
+  dailyCapUSD: 50,
+  store: redisStore(redis), // node-redis v4; keys auto-expire (~2 days)
+});
+```
+
+`store` accepts anything implementing the tiny `SpendStore` interface (`add` / `get` / `entries`), so you can back it with whatever you already run.
+
+## Block *before* the call (no overshoot)
+
+By default the cap is enforced on the **next** call after you cross it, so one call can overshoot. Give it an estimator and it blocks the offending call itself:
+
+```ts
+import { encode } from 'gpt-tokenizer'; // or any tokenizer
+
+const ai = guard(openai.chat.completions, {
+  project: 'my-app',
+  dailyCapUSD: 50,
+  estimateUsage: (args) => ({
+    input: args.messages.reduce((n, m) => n + encode(m.content).length, 0),
+    output: args.max_tokens ?? 512,
+  }),
+});
 ```
 
 ## Options
@@ -67,6 +104,8 @@ guard(client, {
   project: 'my-app',     // groups spend & shares one cap
   dailyCapUSD: 50,       // hard cap per day
   onCap: 'block',        // 'block' (throw) | 'warn' (log only). default 'block'
+  store: myStore,        // optional SpendStore (default: in-memory, per-process)
+  estimateUsage: fn,     // optional: block before a call would exceed the cap
 });
 ```
 
@@ -77,11 +116,17 @@ const ai = guard(openai.chat.completions, { project: 'my-app', dailyCapUSD: 50, 
 // over cap → logs a warning, still calls. Good for easing in.
 ```
 
-## Notes (v0.1)
+## Notes (v0.2)
 
-- Caps are accounted **after each call** and enforced on the **next** one (no pre-call token estimation yet).
-- The ledger is in-memory per process. Persistence + a hosted dashboard are on the roadmap.
+- **Multi-instance + persistence** via a pluggable `SpendStore` (in-memory default, Redis adapter included, or bring your own).
+- **No-overshoot mode** when you supply `estimateUsage`; otherwise the cap is enforced on the next call after you cross it.
+- `spendReport()` is async.
 - Prices live in `PRICES` (USD per 1K tokens) — PRs to keep them current are welcome.
+- Roadmap: streaming usage, more providers, a hosted dashboard. See ROADMAP.
+
+## Migrating from 0.1
+
+`spendReport()` is now `async` — add `await`. Everything else is backward compatible (no `store` = same in-process behavior).
 
 ## License
 

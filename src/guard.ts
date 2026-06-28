@@ -1,5 +1,7 @@
 import { cost } from './cost.js';
 import { normalizeUsage } from './usage.js';
+import { MemoryStore } from './store.js';
+import type { SpendStore } from './store.js';
 import type { GuardOptions, Usage } from './types.js';
 
 /** 호출별 비용 이벤트 (대시보드/로그용). */
@@ -34,11 +36,15 @@ export class BudgetExceededError extends Error {
   }
 }
 
-// 앱 전역 장부: "project|feature|YYYY-MM-DD" -> 누적 USD.
-// (한 프로젝트의 캡은 호출 위치와 무관하게 합산되어야 하므로 모듈 전역)
-const ledger: Record<string, number> = {};
 const SEP = '|';
 const TOTAL = '__total__';
+
+// 기본 저장소: 프로세스 전역 단일 인스턴스 → 같은 프로세스 안에서는 project별 캡이 공유된다.
+const defaultStore = new MemoryStore();
+/** 테스트 전용: 기본 메모리 저장소 초기화. */
+export function __resetDefaultStore(): void {
+  defaultStore.clear();
+}
 
 function dayKey(d: Date): string {
   return d.toISOString().slice(0, 10);
@@ -61,6 +67,7 @@ export function guard<R extends object>(
 ): { create(args: CreateArgs, tags?: { feature?: string }): Promise<R> } {
   const now = internals.now ?? (() => new Date());
   const onCap = opts.onCap ?? 'block';
+  const store: SpendStore = opts.store ?? defaultStore;
   const extract = internals.usageOf ?? ((res: R) => normalizeUsage((res as { usage?: unknown }).usage));
 
   return {
@@ -68,10 +75,16 @@ export function guard<R extends object>(
       const day = dayKey(now());
       const feature = tags.feature ?? 'default';
       const totalKey = `${opts.project}${SEP}${TOTAL}${SEP}${day}`;
-      const spentToday = ledger[totalKey] ?? 0;
+      const spentToday = await store.get(totalKey);
 
-      // --- 하드 캡: 돈 나가는 호출 "전에" 차단 ---
-      if (spentToday >= opts.dailyCapUSD) {
+      // --- 하드 캡 (호출 전) ---
+      // estimateUsage가 있으면 "이 호출이 넘길지"를 미리 보고 그 호출을 차단(overshoot 방지).
+      // 없으면 이미 캡을 넘긴 경우 다음 호출을 차단.
+      const projected = opts.estimateUsage
+        ? spentToday + cost(args.model, opts.estimateUsage(args))
+        : spentToday;
+      const over = opts.estimateUsage ? projected > opts.dailyCapUSD : spentToday >= opts.dailyCapUSD;
+      if (over) {
         const err = new BudgetExceededError(opts.project, spentToday, opts.dailyCapUSD);
         if (onCap === 'block') throw err;
         console.warn(err.message);
@@ -82,41 +95,29 @@ export function guard<R extends object>(
 
       // --- 비용 적립 + 기능별 귀속 ---
       const usd = cost(args.model, extract(res));
-      ledger[totalKey] = spentToday + usd;
-      const featKey = `${opts.project}${SEP}${feature}${SEP}${day}`;
-      ledger[featKey] = (ledger[featKey] ?? 0) + usd;
+      const dayTotalUsd = await store.add(totalKey, usd);
+      await store.add(`${opts.project}${SEP}${feature}${SEP}${day}`, usd);
 
-      internals.onSpend?.({
-        project: opts.project,
-        feature,
-        model: args.model,
-        usd,
-        dayTotalUsd: ledger[totalKey],
-      });
-
+      internals.onSpend?.({ project: opts.project, feature, model: args.model, usd, dayTotalUsd });
       return res;
     },
   };
 }
 
-/** 특정 프로젝트의 그날 기능별 비용 내역을 돌려준다. */
-export function spendReport(
+/** 특정 프로젝트의 그날 기능별 비용 내역을 돌려준다. (기본 저장소 또는 넘긴 store 기준) */
+export async function spendReport(
   project: string,
   day: string = dayKey(new Date()),
-): Record<string, number> {
+  store: SpendStore = defaultStore,
+): Promise<Record<string, number>> {
   const prefix = `${project}${SEP}`;
   const suffix = `${SEP}${day}`;
   const out: Record<string, number> = {};
-  for (const [k, v] of Object.entries(ledger)) {
+  for (const [k, v] of await store.entries(prefix)) {
     if (k.startsWith(prefix) && k.endsWith(suffix)) {
       const feature = k.slice(prefix.length, k.length - suffix.length);
       if (feature !== TOTAL) out[feature] = v;
     }
   }
   return out;
-}
-
-/** 테스트 전용: 장부 초기화. */
-export function _resetLedger(): void {
-  for (const k of Object.keys(ledger)) delete ledger[k];
 }
