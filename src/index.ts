@@ -1,6 +1,6 @@
-export { guard, spendReport, BudgetExceededError } from './guard';
-export { cost } from './cost';
-export { normalizeUsage } from './usage';
-export { PRICES } from './pricing';
-export type { Usage, GuardOptions } from './types';
-export type { SpendEvent } from './guard';
+export { guard, spendReport, BudgetExceededError } from './guard.js';
+export { cost } from './cost.js';
+export { normalizeUsage } from './usage.js';
+export { PRICES } from './pricing.js';
+export type { Usage, GuardOptions } from './types.js';
+export type { SpendEvent } from './guard.js';

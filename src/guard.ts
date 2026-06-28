@@ -1,6 +1,6 @@
-import { cost } from './cost';
-import { normalizeUsage } from './usage';
-import type { GuardOptions, Usage } from './types';
+import { cost } from './cost.js';
+import { normalizeUsage } from './usage.js';
+import type { GuardOptions, Usage } from './types.js';
 
 /** 호출별 비용 이벤트 (대시보드/로그용). */
 export interface SpendEvent {

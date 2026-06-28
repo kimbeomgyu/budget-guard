@@ -1,5 +1,5 @@
-import { PRICES } from './pricing';
-import type { Usage } from './types';
+import { PRICES } from './pricing.js';
+import type { Usage } from './types.js';
 
 /** 토큰 사용량을 가격표 기준 USD 비용으로 환산한다. */
 export function cost(model: string, usage: Usage): number {

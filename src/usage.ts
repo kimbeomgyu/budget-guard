@@ -1,4 +1,4 @@
-import type { Usage } from './types';
+import type { Usage } from './types.js';
 
 /**
  * 제공자별 usage 형태를 {input, output} 토큰으로 정규화한다.
