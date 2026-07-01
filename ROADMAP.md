@@ -15,6 +15,17 @@ Pick the FIRST unchecked `- [ ]` and ship it small, fully-verified, one per PR/c
 - **Vercel AI SDK is version-split**: `npm i ai` today = v7 (`LanguageModelV4Middleware`, nested `usage.inputTokens.total`); much prod code is v5 (`LanguageModelV2Middleware`, flat `usage.inputTokens`). Pin-check the installed major.
 - **Prices change** — treat any number here as a starting point; verify against the provider's official pricing page in the same PR. Add a `deprecated`/`retiresOn` field to PRICES.
 - Every change ships only if unit tests + `tsc` build + the real-consumer tarball smoke all pass.
+- **Never publish personal contact info or set up unattended npm publish.** For CoC / SECURITY / FUNDING use GitHub-native flows (private vulnerability reporting, Security Advisories); publishing stays human / release-environment gated.
+
+## Phase 0 — Repo health & trust (OSS foundations, each < 1 hr; benchmarked against biomejs/biome, trimmed for a tiny solo lib)
+- [ ] **CI: test + lint + build on push/PR** — `.github/workflows/ci.yml` on `ubuntu-latest` (no matrix — pure TS): `actions/setup-node` (cache npm), `npm ci`, `npx tsc --noEmit`, `npm run lint` (Biome), `npm test`. Don't duplicate the existing release workflow. Test: valid YAML running the 4 steps; add CI badge to README.
+- [ ] **README badges** — CI status + `npm version` (`img.shields.io/npm/v/budget-guard`) + license, linked to Actions / npm / LICENSE.
+- [ ] **CONTRIBUTING.md** — 1-2 pages: prereqs, install, `npm test`/`build`/`lint`, conventional-commit format, how+when to add a changeset, PR process. A first-timer can set up + submit a valid PR from this alone.
+- [ ] **CODE_OF_CONDUCT.md** — Contributor Covenant 2.1; for the contact use GitHub's report flow (NOT a hardcoded personal email); link from CONTRIBUTING.
+- [ ] **SECURITY.md + private vuln reporting** — supported versions + report via GitHub Security Advisories (`/security/advisories/new`), 72h ack. No personal email. (This SDK sits between user code and money — disclosure path matters.)
+- [ ] **Issue templates (2) + config** — `bug_report.yml` (node ver, pkg ver, repro, expected/actual) + `feature_request.yml` (problem, proposal, alternatives); `config.yml` disables blank issues. Two templates, not seven.
+- [ ] **PR template** — `.github/PULL_REQUEST_TEMPLATE.md`: what/why, "changeset added?", how tested, closes #.
+- [ ] **Changesets + CHANGELOG** — `@changesets/cli` (`access: public`, `@changesets/changelog-github`), `changeset`/`version` scripts, a workflow that opens a "Version Packages" PR. Publishing stays human/release-gated — do NOT wire unattended `npm publish`; leave `NPM_TOKEN` to the maintainer. Test: `changeset status` runs; a sample changeset bumps version + CHANGELOG on the Version PR.
 
 ## Phase 1 — Core correctness & coverage
 - [ ] **normalizeUsage: throw on unknown shapes** — return `{input, output}` (+ optional `cachedInput`, `reasoning`); throw `UnknownUsageShapeError` for unrecognized/`null` usage instead of silently returning 0. Test: known shapes pass; `{foo:1}` and `null` throw.
@@ -27,7 +38,6 @@ Pick the FIRST unchecked `- [ ]` and ship it small, fully-verified, one per PR/c
 - [ ] **Expand PRICES + deprecation field** — add current models (gpt-4.1, o-series, claude sonnet/haiku, gemini flash/pro, mistral, deepseek, grok) with a `retiresOn?` field; a test guards the table shape (every row has input+output numbers).
 - [ ] **`onExceeded` callback** — allow a custom handler on cap hit alongside `'block' | 'warn'`. Test: handler is called with `{project, spentUsd, capUsd}` and can override behavior.
 - [ ] **Graceful missing/partial usage** — `onMissingUsage: 'zero' | 'throw' | 'estimate'` (default 'zero'); null/absent usage logs a warning + increments a `missingUsageIncidents` counter surfaced in spendReport. Test: null usage → no throw (zero mode), throws in 'throw' mode.
-- [ ] **CI** — GitHub Actions workflow running `npm test` + `npm run build` on pushes and PRs.
 - [ ] **`examples/` directory** — runnable OpenAI, Anthropic, and Redis-store examples.
 
 ## Phase 2 — Streaming usage (correctness gap)
@@ -53,6 +63,9 @@ Pick the FIRST unchecked `- [ ]` and ship it small, fully-verified, one per PR/c
 ## Phase 5 — DX & testing
 - [ ] **Test helpers (`budget-guard/testing`)** — export `buildOpenAIUsage()`/`buildAnthropicUsage()` factories, `createFixedClock(iso)` for reset-boundary tests, `FakeSpendStore` (records operations), and `simulateConcurrentIncrements(store,...)`. Test: factories default to 0 + apply overrides; fixed clock drives key generation.
 
+## Not now — overkill for a tiny solo lib (revisit when it grows)
+CI matrix across OSes (pure TS runs everywhere); GOVERNANCE.md / CODEOWNERS (no co-maintainers); Renovate (Dependabot already on); benchmark / triage-automation / PR-title-lint workflows (fine at Biome's scale, overhead at 0-10 issues/mo); 7 issue templates (2 is enough); multi-language READMEs & sponsor-tier logo grids (wait for demand); native-binary/WASM release matrices (N/A — pure TS).
+
 ## Later / hosted (NOT built into this free package)
 - [ ] Optional CLI (`budget-guard report`) backed by a file/redis store.
 - [ ] Hosted layer: cross-project dashboard, shared caps, alerts, team — separate product, demand-permitting.
@@ -60,3 +73,4 @@ Pick the FIRST unchecked `- [ ]` and ship it small, fully-verified, one per PR/c
 ## Done
 - **v0.1** — core: `guard()` hard daily cap + per-feature `spendReport()`, OpenAI/Anthropic usage normalization.
 - **v0.2** — pluggable `SpendStore` (MemoryStore + `redisStore`), pre-call blocking via `estimateUsage`.
+- **Tooling** — Biome (lint + formatter) with `lint`/`format` scripts.
