@@ -1,6 +1,6 @@
 {
   "name": "budget-guard",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "A circuit breaker for your LLM API bill — hard budget caps + per-feature cost attribution for the OpenAI & Anthropic APIs.",
   "type": "module",
   "main": "dist/index.js",
@@ -12,14 +12,26 @@
     },
     "./package.json": "./package.json"
   },
-  "files": ["dist", "README.md"],
+  "files": [
+    "dist",
+    "README.md"
+  ],
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
     "build": "tsc",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["openai", "anthropic", "llm", "cost", "budget", "tokens", "ai", "rate-limit"],
+  "keywords": [
+    "openai",
+    "anthropic",
+    "llm",
+    "cost",
+    "budget",
+    "tokens",
+    "ai",
+    "rate-limit"
+  ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/kimbeomgyu/budget-guard.git"
