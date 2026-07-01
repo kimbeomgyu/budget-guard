@@ -1,5 +1,9 @@
 # budget-guard
 
+[![npm version](https://img.shields.io/npm/v/budget-guard.svg)](https://www.npmjs.com/package/budget-guard)
+[![npm downloads](https://img.shields.io/npm/dm/budget-guard.svg)](https://www.npmjs.com/package/budget-guard)
+[![license](https://img.shields.io/npm/l/budget-guard.svg)](./LICENSE)
+
 **A circuit breaker for your LLM API bill.** One wrap, set a hard daily cap — runaway retry loops get blocked *before* they bill you. Plus per-feature cost attribution so you know what actually costs what.
 
 > Built for indie devs shipping on the OpenAI / Anthropic APIs who've seen "a $40 bill from a $5 task." Drop-in: your calls still go straight to the provider — `budget-guard` just counts and caps.
