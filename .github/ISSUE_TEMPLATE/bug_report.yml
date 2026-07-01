@@ -1,0 +1,43 @@
+name: Bug report
+description: Something isn't working as documented
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting! Please **redact any API keys / secrets** from snippets and logs.
+  - type: input
+    id: version
+    attributes:
+      label: budget-guard version
+      placeholder: "0.2.2"
+    validations:
+      required: true
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Provider
+      options:
+        - OpenAI
+        - Anthropic
+        - Other / custom (usageOf)
+    validations:
+      required: true
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: What did you expect, and what actually happened?
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: The smallest code snippet that reproduces it (keys redacted).
+      render: ts
+  - type: input
+    id: env
+    attributes:
+      label: Environment
+      placeholder: "Node 22.x, macOS 15, store: in-memory / redis"

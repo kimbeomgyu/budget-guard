@@ -28,6 +28,9 @@ jobs:
 
       - run: npm ci
 
+      - name: Lint & format (biome)
+        run: npm run lint
+
       - name: Build (tsc)
         run: npm run build
 
