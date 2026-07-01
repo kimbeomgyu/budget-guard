@@ -1,0 +1,59 @@
+name: Publish
+
+# Publishes to npm when you push a version tag, e.g.:
+#   npm version patch   # bumps package.json + creates a vX.Y.Z tag
+#   git push --follow-tags
+#
+# Auth is npm Trusted Publishing (OIDC) — NO NPM_TOKEN secret needed.
+# One-time setup on npmjs.com → package "budget-guard" → Settings → Trusted Publisher:
+#   Publisher: GitHub Actions
+#   Organization/user: kimbeomgyu
+#   Repository: budget-guard
+#   Workflow filename: publish.yml
+# Provenance attestations are generated automatically.
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  id-token: write # required for OIDC trusted publishing
+  contents: read
+
+jobs:
+  publish:
+    name: publish to npm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24 # OIDC needs Node >= 22.14.0
+          registry-url: https://registry.npmjs.org
+          cache: npm
+
+      - name: Ensure npm >= 11.5.1 (required for OIDC trusted publishing)
+        run: npm install -g npm@latest
+
+      - run: npm ci
+
+      - name: Verify tag matches package.json version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          PKG="$(node -p "require('./package.json').version")"
+          if [ "$TAG" != "$PKG" ]; then
+            echo "::error::Tag v$TAG does not match package.json version $PKG"
+            exit 1
+          fi
+          echo "Publishing v$PKG"
+
+      - name: Build (tsc)
+        run: npm run build
+
+      - name: Test (vitest)
+        run: npm test
+
+      - name: Publish (OIDC — no token, provenance automatic)
+        run: npm publish

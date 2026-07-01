@@ -1,5 +1,6 @@
 # budget-guard
 
+[![CI](https://github.com/kimbeomgyu/budget-guard/actions/workflows/ci.yml/badge.svg)](https://github.com/kimbeomgyu/budget-guard/actions/workflows/ci.yml)
 [![npm version](https://img.shields.io/npm/v/budget-guard.svg)](https://www.npmjs.com/package/budget-guard)
 [![npm downloads](https://img.shields.io/npm/dm/budget-guard.svg)](https://www.npmjs.com/package/budget-guard)
 [![license](https://img.shields.io/npm/l/budget-guard.svg)](./LICENSE)
