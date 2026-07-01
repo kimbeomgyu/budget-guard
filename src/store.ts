@@ -39,7 +39,10 @@ export interface RedisLike {
   incrByFloat(key: string, amount: number): Promise<string | number>;
   get(key: string): Promise<string | null>;
   expire(key: string, seconds: number): Promise<unknown>;
-  scan(cursor: number, opts: { MATCH: string; COUNT: number }): Promise<{ cursor: number | string; keys: string[] }>;
+  scan(
+    cursor: number,
+    opts: { MATCH: string; COUNT: number },
+  ): Promise<{ cursor: number | string; keys: string[] }>;
 }
 
 /**
@@ -68,7 +71,7 @@ export function redisStore(
       const out: Array<[string, number]> = [];
       let cursor: number = 0;
       do {
-        const res = await client.scan(cursor, { MATCH: pre + prefix + '*', COUNT: 200 });
+        const res = await client.scan(cursor, { MATCH: `${pre + prefix}*`, COUNT: 200 });
         cursor = Number(res.cursor);
         for (const fullKey of res.keys) {
           const v = await client.get(fullKey);

@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { normalizeUsage } from '../src/usage';
 
 describe('normalizeUsage()', () => {
@@ -7,11 +7,17 @@ describe('normalizeUsage()', () => {
   });
 
   it('OpenAI 형태(prompt_tokens/completion_tokens)를 정규화한다', () => {
-    expect(normalizeUsage({ prompt_tokens: 10, completion_tokens: 20 })).toEqual({ input: 10, output: 20 });
+    expect(normalizeUsage({ prompt_tokens: 10, completion_tokens: 20 })).toEqual({
+      input: 10,
+      output: 20,
+    });
   });
 
   it('Anthropic 형태(input_tokens/output_tokens)를 정규화한다', () => {
-    expect(normalizeUsage({ input_tokens: 10, output_tokens: 20 })).toEqual({ input: 10, output: 20 });
+    expect(normalizeUsage({ input_tokens: 10, output_tokens: 20 })).toEqual({
+      input: 10,
+      output: 20,
+    });
   });
 
   it('usage가 없으면 에러', () => {

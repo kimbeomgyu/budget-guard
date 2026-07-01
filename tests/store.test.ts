@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { MemoryStore, redisStore } from '../src/store';
 
 describe('MemoryStore', () => {
@@ -11,11 +11,18 @@ describe('MemoryStore', () => {
   });
   it('entries는 prefix로 거른다', () => {
     const s = new MemoryStore();
-    s.add('p|f1|d', 1); s.add('p|f2|d', 2); s.add('other|f|d', 3);
-    expect(s.entries('p|').sort()).toEqual([['p|f1|d', 1], ['p|f2|d', 2]]);
+    s.add('p|f1|d', 1);
+    s.add('p|f2|d', 2);
+    s.add('other|f|d', 3);
+    expect(s.entries('p|').sort()).toEqual([
+      ['p|f1|d', 1],
+      ['p|f2|d', 2],
+    ]);
   });
   it('clear는 비운다', () => {
-    const s = new MemoryStore(); s.add('a', 1); s.clear();
+    const s = new MemoryStore();
+    s.add('a', 1);
+    s.clear();
     expect(s.get('a')).toBe(0);
   });
 });
@@ -25,13 +32,26 @@ function mockRedis() {
   const data = new Map<string, number>();
   const calls: string[] = [];
   return {
-    data, calls,
-    async incrByFloat(k: string, amt: number) { const n = (data.get(k) ?? 0) + amt; data.set(k, n); return String(n); },
-    async get(k: string) { const v = data.get(k); return v == null ? null : String(v); },
-    async expire(_k: string, _s: number) { calls.push('expire'); return 1; },
+    data,
+    calls,
+    async incrByFloat(k: string, amt: number) {
+      const n = (data.get(k) ?? 0) + amt;
+      data.set(k, n);
+      return String(n);
+    },
+    async get(k: string) {
+      const v = data.get(k);
+      return v == null ? null : String(v);
+    },
+    async expire(_k: string, _s: number) {
+      calls.push('expire');
+      return 1;
+    },
     async scan(_cursor: number, opts: { MATCH: string; COUNT: number }) {
       calls.push('scan');
-      const re = new RegExp('^' + opts.MATCH.replace(/[.*+?^${}()|[\]\\]/g, (m) => (m === '*' ? '.*' : '\\' + m)) + '$');
+      const re = new RegExp(
+        `^${opts.MATCH.replace(/[.*+?^${}()|[\]\\]/g, (m) => (m === '*' ? '.*' : `\\${m}`))}$`,
+      );
       return { cursor: 0, keys: [...data.keys()].filter((k) => re.test(k)) };
     },
   };
@@ -55,7 +75,11 @@ describe('redisStore (mock client)', () => {
   it('entries는 prefix를 떼고 쌍을 돌려준다', async () => {
     const c = mockRedis();
     const s = redisStore(c as never);
-    await s.add('p|f1|d', 1); await s.add('p|f2|d', 2);
-    expect((await s.entries('p|')).sort()).toEqual([['p|f1|d', 1], ['p|f2|d', 2]]);
+    await s.add('p|f1|d', 1);
+    await s.add('p|f2|d', 2);
+    expect((await s.entries('p|')).sort()).toEqual([
+      ['p|f1|d', 1],
+      ['p|f2|d', 2],
+    ]);
   });
 });

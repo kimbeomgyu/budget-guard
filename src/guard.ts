@@ -1,8 +1,8 @@
 import { cost } from './cost.js';
-import { normalizeUsage } from './usage.js';
-import { MemoryStore } from './store.js';
 import type { SpendStore } from './store.js';
+import { MemoryStore } from './store.js';
 import type { GuardOptions, Usage } from './types.js';
+import { normalizeUsage } from './usage.js';
 
 /** 호출별 비용 이벤트 (대시보드/로그용). */
 export interface SpendEvent {
@@ -29,9 +29,7 @@ export class BudgetExceededError extends Error {
     public spentUsd: number,
     public capUsd: number,
   ) {
-    super(
-      `🛡 Budget cap hit for "${project}": $${spentUsd.toFixed(2)} / $${capUsd} — call blocked`,
-    );
+    super(`🛡 Budget cap hit for "${project}": $${spentUsd.toFixed(2)} / $${capUsd} — call blocked`);
     this.name = 'BudgetExceededError';
   }
 }
@@ -68,7 +66,8 @@ export function guard<R extends object>(
   const now = internals.now ?? (() => new Date());
   const onCap = opts.onCap ?? 'block';
   const store: SpendStore = opts.store ?? defaultStore;
-  const extract = internals.usageOf ?? ((res: R) => normalizeUsage((res as { usage?: unknown }).usage));
+  const extract =
+    internals.usageOf ?? ((res: R) => normalizeUsage((res as { usage?: unknown }).usage));
 
   return {
     async create(args: CreateArgs, tags: { feature?: string } = {}): Promise<R> {
@@ -83,7 +82,9 @@ export function guard<R extends object>(
       const projected = opts.estimateUsage
         ? spentToday + cost(args.model, opts.estimateUsage(args))
         : spentToday;
-      const over = opts.estimateUsage ? projected > opts.dailyCapUSD : spentToday >= opts.dailyCapUSD;
+      const over = opts.estimateUsage
+        ? projected > opts.dailyCapUSD
+        : spentToday >= opts.dailyCapUSD;
       if (over) {
         const err = new BudgetExceededError(opts.project, spentToday, opts.dailyCapUSD);
         if (onCap === 'block') throw err;

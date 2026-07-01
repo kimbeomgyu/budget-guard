@@ -1,5 +1,5 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { guard, spendReport, BudgetExceededError, __resetDefaultStore } from '../src/guard';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { __resetDefaultStore, BudgetExceededError, guard, spendReport } from '../src/guard';
 import { MemoryStore } from '../src/store';
 
 const fixedNow = () => new Date('2026-06-28T10:00:00Z');
@@ -26,7 +26,11 @@ describe('guard()', () => {
   });
 
   it("onCap:'warn'이면 차단하지 않는다", async () => {
-    const ai = guard(fakeClient(), { project: 'p', dailyCapUSD: 0, onCap: 'warn' }, { now: fixedNow });
+    const ai = guard(
+      fakeClient(),
+      { project: 'p', dailyCapUSD: 0, onCap: 'warn' },
+      { now: fixedNow },
+    );
     await expect(ai.create({ model: 'gpt-4o' })).resolves.toBeTruthy();
   });
 
@@ -43,14 +47,22 @@ describe('guard()', () => {
   it('estimateUsage가 있으면 넘길 호출을 그 호출에서 차단한다 (overshoot 방지)', async () => {
     // 호출당 추정 0.0125, 캡 0.02. 1번째 ok(→0.0125). 2번째: 0.0125+0.0125=0.025 > 0.02 → 차단.
     const est = () => ({ input: 1000, output: 1000 });
-    const ai = guard(fakeClient(), { project: 'est', dailyCapUSD: 0.02, estimateUsage: est }, { now: fixedNow });
+    const ai = guard(
+      fakeClient(),
+      { project: 'est', dailyCapUSD: 0.02, estimateUsage: est },
+      { now: fixedNow },
+    );
     await ai.create({ model: 'gpt-4o' });
     await expect(ai.create({ model: 'gpt-4o' })).rejects.toBeInstanceOf(BudgetExceededError);
   });
 
   it('넘긴 store로 격리된다 (기본 전역과 분리)', async () => {
     const s = new MemoryStore();
-    const ai = guard(fakeClient(), { project: 'iso', dailyCapUSD: 99, store: s }, { now: fixedNow });
+    const ai = guard(
+      fakeClient(),
+      { project: 'iso', dailyCapUSD: 99, store: s },
+      { now: fixedNow },
+    );
     await ai.create({ model: 'gpt-4o' }, { feature: 'x' });
     expect(await spendReport('iso', '2026-06-28', s)).toHaveProperty('x');
     expect(await spendReport('iso', '2026-06-28')).toEqual({}); // 기본 전역엔 없음
