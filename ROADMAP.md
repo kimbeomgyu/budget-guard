@@ -25,7 +25,7 @@ issue templates + config · PR template · dependabot · CHANGELOG · README bad
 - (changesets tooling optional — revisit only if manual versioning becomes a chore)
 
 ## Phase 1 — Core correctness & coverage
-- [ ] **normalizeUsage: throw on unknown shapes** — return `{input, output}` (+ optional `cachedInput`, `reasoning`); throw `UnknownUsageShapeError` for unrecognized/`null` usage instead of silently returning 0. Test: known shapes pass; `{foo:1}` and `null` throw.
+- [x] **normalizeUsage: throw on unknown shapes** — return `{input, output}` (+ optional `cachedInput`, `reasoning`); throw `UnknownUsageShapeError` for unrecognized/`null` usage instead of silently returning 0. Test: known shapes pass; `{foo:1}` and `null` throw.
 - [ ] **Add Gemini** — normalize `usageMetadata` (`promptTokenCount`→input, `candidatesTokenCount`→output, `thoughtsTokenCount`→reasoning, `cachedContentTokenCount` as cached subset of input) + add gemini-2.5-pro/flash prices. Test: sample `usageMetadata` → correct `{input,output,reasoning,cachedInput}` and cost.
 - [ ] **Add Bedrock Converse** — normalize camelCase `inputTokens`/`outputTokens`/`cacheReadInputTokens`/`cacheWriteInputTokens`; resolve `us.`/`eu.` model-id prefixes to the base PRICES row. Test: `us.anthropic.claude-sonnet-4` resolves same row as base.
 - [ ] **Add Azure dual-shape** — detect Chat Completions (`prompt_tokens`) vs Responses API (`input_tokens`) and route; pull `*_tokens_details.cached_tokens` / `reasoning_tokens` from whichever nesting. Test: both shapes → equivalent normalized object.
