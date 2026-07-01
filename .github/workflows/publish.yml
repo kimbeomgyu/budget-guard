@@ -27,6 +27,10 @@ concurrency:
   group: publish
   cancel-in-progress: false
 
+# Minimal default at the top; each job escalates to exactly what it needs below.
+permissions:
+  contents: read
+
 jobs:
   publish:
     name: publish to npm
@@ -50,7 +54,14 @@ jobs:
           registry-url: https://registry.npmjs.org
 
       - name: Ensure npm >= 11.5.1 (required for OIDC trusted publishing)
-        run: npm install -g npm@11.5.1 # pinned, not @latest — no mutable code in the publish path
+        # Node 24 already bundles npm >= 11.5.1 — verify the floor instead of
+        # `npm install -g` (no unpinned command in the publish path). Fails loudly if too old.
+        run: |
+          need=11.5.1; have="$(npm --version)"
+          if [ "$(printf '%s\n%s\n' "$need" "$have" | sort -V | tail -1)" != "$have" ]; then
+            echo "::error::npm $have is older than the required $need"; exit 1
+          fi
+          echo "npm $have OK"
 
       - run: npm ci --ignore-scripts # no dependency postinstall runs in the OIDC-privileged job
 
