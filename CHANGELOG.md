@@ -56,3 +56,5 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 [0.2.2]: https://github.com/kimbeomgyu/budget-guard/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/kimbeomgyu/budget-guard/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/kimbeomgyu/budget-guard/releases/tag/v0.2.0
+[0.1.1]: https://www.npmjs.com/package/budget-guard/v/0.1.1
+[0.1.0]: https://www.npmjs.com/package/budget-guard/v/0.1.0
