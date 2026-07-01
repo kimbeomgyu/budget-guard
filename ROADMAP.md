@@ -17,15 +17,12 @@ Pick the FIRST unchecked `- [ ]` and ship it small, fully-verified, one per PR/c
 - Every change ships only if unit tests + `tsc` build + the real-consumer tarball smoke all pass.
 - **Never publish personal contact info or set up unattended npm publish.** For CoC / SECURITY / FUNDING use GitHub-native flows (private vulnerability reporting, Security Advisories); publishing stays human / release-environment gated.
 
-## Phase 0 — Repo health & trust (OSS foundations, each < 1 hr; benchmarked against biomejs/biome, trimmed for a tiny solo lib)
-- [ ] **CI: test + lint + build on push/PR** — `.github/workflows/ci.yml` on `ubuntu-latest` (no matrix — pure TS): `actions/setup-node` (cache npm), `npm ci`, `npx tsc --noEmit`, `npm run lint` (Biome), `npm test`. Don't duplicate the existing release workflow. Test: valid YAML running the 4 steps; add CI badge to README.
-- [ ] **README badges** — CI status + `npm version` (`img.shields.io/npm/v/budget-guard`) + license, linked to Actions / npm / LICENSE.
-- [ ] **CONTRIBUTING.md** — 1-2 pages: prereqs, install, `npm test`/`build`/`lint`, conventional-commit format, how+when to add a changeset, PR process. A first-timer can set up + submit a valid PR from this alone.
-- [ ] **CODE_OF_CONDUCT.md** — Contributor Covenant 2.1; for the contact use GitHub's report flow (NOT a hardcoded personal email); link from CONTRIBUTING.
-- [ ] **SECURITY.md + private vuln reporting** — supported versions + report via GitHub Security Advisories (`/security/advisories/new`), 72h ack. No personal email. (This SDK sits between user code and money — disclosure path matters.)
-- [ ] **Issue templates (2) + config** — `bug_report.yml` (node ver, pkg ver, repro, expected/actual) + `feature_request.yml` (problem, proposal, alternatives); `config.yml` disables blank issues. Two templates, not seven.
-- [ ] **PR template** — `.github/PULL_REQUEST_TEMPLATE.md`: what/why, "changeset added?", how tested, closes #.
-- [ ] **Changesets + CHANGELOG** — `@changesets/cli` (`access: public`, `@changesets/changelog-github`), `changeset`/`version` scripts, a workflow that opens a "Version Packages" PR. Publishing stays human/release-gated — do NOT wire unattended `npm publish`; leave `NPM_TOKEN` to the maintainer. Test: `changeset status` runs; a sample changeset bumps version + CHANGELOG on the Version PR.
+## Phase 0 — Repo health & trust ✅ DONE (completed by the maintainer in parallel; autobuilder should skip)
+CI (test/lint/build) · CodeQL SAST · OpenSSF Scorecard · SECURITY.md + private vuln reporting ·
+issue templates + config · PR template · dependabot · CHANGELOG · README badges · community-health files.
+- [x] CI · [x] README badges · [x] CONTRIBUTING · [x] CODE_OF_CONDUCT
+- [x] SECURITY.md + private vuln reporting · [x] issue templates + config · [x] PR template · [x] CHANGELOG
+- (changesets tooling optional — revisit only if manual versioning becomes a chore)
 
 ## Phase 1 — Core correctness & coverage
 - [ ] **normalizeUsage: throw on unknown shapes** — return `{input, output}` (+ optional `cachedInput`, `reasoning`); throw `UnknownUsageShapeError` for unrecognized/`null` usage instead of silently returning 0. Test: known shapes pass; `{foo:1}` and `null` throw.
