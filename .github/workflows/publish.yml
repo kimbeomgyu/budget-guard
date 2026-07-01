@@ -7,6 +7,8 @@ name: Publish
 # npm auth is Trusted Publishing (OIDC) — NO NPM_TOKEN secret needed.
 # One-time setup on npmjs.com → package "budget-guard" → Settings → Trusted Publisher:
 #   Publisher: GitHub Actions | user: kimbeomgyu | repo: budget-guard | workflow: publish.yml
+#   Environment: release   ← set this too, so a token minted OUTSIDE the gated
+#                             environment (e.g. an edited workflow) is rejected by npm.
 # Provenance attestations are generated automatically.
 #
 # Hardening:
@@ -29,6 +31,11 @@ jobs:
   publish:
     name: publish to npm
     runs-on: ubuntu-latest
+    # Gated by the "release" environment: GitHub pauses this job for a required
+    # reviewer before the OIDC token is minted. This approval is enforced by the
+    # platform regardless of what this file contains, so it survives a tampered
+    # workflow at a pushed tag. Configure reviewers in repo Settings → Environments.
+    environment: release
     permissions:
       id-token: write # OIDC token for npm trusted publishing
       contents: read # read the repo; publish uses OIDC, not the git token
