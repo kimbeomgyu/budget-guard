@@ -1,6 +1,9 @@
 # budget-guard
 
 [![CI](https://github.com/kimbeomgyu/budget-guard/actions/workflows/ci.yml/badge.svg)](https://github.com/kimbeomgyu/budget-guard/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/kimbeomgyu/budget-guard/actions/workflows/codeql.yml/badge.svg)](https://github.com/kimbeomgyu/budget-guard/actions/workflows/codeql.yml)
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/kimbeomgyu/budget-guard/badge)](https://scorecard.dev/viewer/?uri=github.com/kimbeomgyu/budget-guard)
+[![Security Policy](https://img.shields.io/badge/security-policy-blue.svg)](./SECURITY.md)
 [![npm version](https://img.shields.io/npm/v/budget-guard.svg)](https://www.npmjs.com/package/budget-guard)
 [![npm downloads](https://img.shields.io/npm/dm/budget-guard.svg)](https://www.npmjs.com/package/budget-guard)
 [![license](https://img.shields.io/npm/l/budget-guard.svg)](./LICENSE)
