@@ -6,24 +6,52 @@ a drop-in SDK that hard-caps spend, blocks *before* overspending, and attributes
 Out of scope for this package: dashboards, analytics, multi-tenant UI — those belong to a separate
 hosted layer, NOT here. Keep the core small, dependency-free, and sharp.
 
-Items are small and independently testable, in rough priority order. Pick the first unchecked one.
+Pick the FIRST unchecked `- [ ]` and ship it small, fully-verified, one per PR/commit.
 
-## Phase 1 — Solidify the core
-- [ ] **Gemini support** — add Gemini pricing to `PRICES` and normalize its usage shape (`usageMetadata.promptTokenCount` / `candidatesTokenCount`) in `normalizeUsage`, with tests.
-- [ ] **Expand `PRICES`** — add current models (gpt-4.1, o-series, claude sonnet/haiku, gemini flash/pro) + a test guarding the table shape.
-- [ ] **`onExceeded` callback** — allow a custom handler when the cap is hit, alongside `'block' | 'warn'`, with tests.
-- [ ] **Streaming usage** — a small helper to aggregate token usage from a streamed response (sum the final usage chunk), with tests.
-- [ ] **CI** — a GitHub Actions workflow running `npm test` + `npm run build` on pushes and PRs.
+## Builder notes (accuracy — read before implementing)
+- **Two reasoning-token conventions** (top source of silent cost bugs): OpenAI / Azure / DeepSeek / Anthropic-thinking count reasoning *inside* output tokens (don't double-add); **xAI Grok EXCLUDES reasoning from `completion_tokens`** — add it before billing. Gemini `thoughtsTokenCount` bills at output rate.
+- **Cache discounts vary wildly** — not one constant: DeepSeek cache-hit ~2%, Gemini/Mistral ~10%, OpenAI cached ~25-75% off, Anthropic cache-read 10% / cache-write 125% (5m) or 200% (1h). Model per-class rates.
+- **Streaming usage is opt-in / event-specific** — OpenAI needs `stream_options.include_usage`; Anthropic `message_delta.usage` is *cumulative* (replace, don't add).
+- **Vercel AI SDK is version-split**: `npm i ai` today = v7 (`LanguageModelV4Middleware`, nested `usage.inputTokens.total`); much prod code is v5 (`LanguageModelV2Middleware`, flat `usage.inputTokens`). Pin-check the installed major.
+- **Prices change** — treat any number here as a starting point; verify against the provider's official pricing page in the same PR. Add a `deprecated`/`retiresOn` field to PRICES.
+- Every change ships only if unit tests + `tsc` build + the real-consumer tarball smoke all pass.
+
+## Phase 1 — Core correctness & coverage
+- [ ] **normalizeUsage: throw on unknown shapes** — return `{input, output}` (+ optional `cachedInput`, `reasoning`); throw `UnknownUsageShapeError` for unrecognized/`null` usage instead of silently returning 0. Test: known shapes pass; `{foo:1}` and `null` throw.
+- [ ] **Add Gemini** — normalize `usageMetadata` (`promptTokenCount`→input, `candidatesTokenCount`→output, `thoughtsTokenCount`→reasoning, `cachedContentTokenCount` as cached subset of input) + add gemini-2.5-pro/flash prices. Test: sample `usageMetadata` → correct `{input,output,reasoning,cachedInput}` and cost.
+- [ ] **Add Bedrock Converse** — normalize camelCase `inputTokens`/`outputTokens`/`cacheReadInputTokens`/`cacheWriteInputTokens`; resolve `us.`/`eu.` model-id prefixes to the base PRICES row. Test: `us.anthropic.claude-sonnet-4` resolves same row as base.
+- [ ] **Add Azure dual-shape** — detect Chat Completions (`prompt_tokens`) vs Responses API (`input_tokens`) and route; pull `*_tokens_details.cached_tokens` / `reasoning_tokens` from whichever nesting. Test: both shapes → equivalent normalized object.
+- [ ] **Cohere `billed_units`** — normalize from `usage.billed_units.{input_tokens,output_tokens}` (bill from billed_units, not raw `tokens`). Test: sample → correct cost.
+- [ ] **Reasoning-token convention flag** — per-provider `reasoningInOutput: boolean`; xAI Grok adds `reasoning_tokens` to output before billing, others don't double-count. Test: xAI `{completion_tokens:100, reasoning_tokens:400}` bills 500; OpenAI `{completion_tokens:500, reasoning_tokens:400}` bills 500.
+- [ ] **Per-class cache cost model** — PRICES rows gain optional `cachedInput`/`cacheRead`/`cacheWrite5m`/`cacheWrite1h`; `cost()` bills each token class at its rate, falling back to input rate when undefined. Test: Anthropic read/write multipliers (0.1×/1.25×/2×) and DeepSeek cache-hit (~2%) compute correctly.
+- [ ] **Expand PRICES + deprecation field** — add current models (gpt-4.1, o-series, claude sonnet/haiku, gemini flash/pro, mistral, deepseek, grok) with a `retiresOn?` field; a test guards the table shape (every row has input+output numbers).
+- [ ] **`onExceeded` callback** — allow a custom handler on cap hit alongside `'block' | 'warn'`. Test: handler is called with `{project, spentUsd, capUsd}` and can override behavior.
+- [ ] **Graceful missing/partial usage** — `onMissingUsage: 'zero' | 'throw' | 'estimate'` (default 'zero'); null/absent usage logs a warning + increments a `missingUsageIncidents` counter surfaced in spendReport. Test: null usage → no throw (zero mode), throws in 'throw' mode.
+- [ ] **CI** — GitHub Actions workflow running `npm test` + `npm run build` on pushes and PRs.
 - [ ] **`examples/` directory** — runnable OpenAI, Anthropic, and Redis-store examples.
 
-## Phase 2 — Framework adapters (distribution as code)  ← strategic centerpiece
-- [ ] **Vercel AI SDK adapter** — a wrapper/middleware so AI SDK users apply a budget cap in one line; tests against the SDK's call shape.
-- [ ] **LangChain.js integration** — a callback handler (or model wrapper) that meters + caps spend; tests.
-- [ ] **Generic fetch adapter** — helper to guard any fetch-based provider client not covered above.
+## Phase 2 — Streaming usage (correctness gap)
+- [ ] **OpenAI streaming** — when `stream:true`, inject `stream_options.include_usage:true`, read usage from the terminal `choices:[]` chunk, ignore `null` usage on intermediate chunks. Test: 5 null chunks + final usage chunk → cost recorded once; assert flag injected.
+- [ ] **Anthropic streaming** — capture input+cache from `message_start.message.usage`; on `message_delta.usage` REPLACE output (cumulative, not additive). Test: start `{input:100,output:1}` + delta `{output:120}` → bills 100in/120out (not 121).
+- [ ] **Gemini streaming** — aggregate `usageMetadata` from the final streamed chunk. Test: streamed chunks ending with usageMetadata → recorded once.
 
-## Phase 3 — Accuracy & DX
-- [ ] **Built-in estimator helper** — a thin `estimateUsage` helper + recipe using a tokenizer as an *optional* peer dep, so pre-call blocking works with minimal setup.
-- [ ] **Typed per-provider helpers** — `guardOpenAI()` / `guardAnthropic()` for nicer ergonomics, with tests.
+## Phase 3 — Framework adapters (distribution as code)  ← strategic centerpiece
+- [ ] **Vercel AI SDK v5 middleware** — `budgetGuardMiddleware()` returning `LanguageModelV2Middleware`: `transformParams` pre-call cap throw, `wrapGenerate` post-call meter (flat `result.usage`); used via `wrapLanguageModel`. Test: mock v2 model; over-cap second call throws before `doGenerate` runs (spy).
+- [ ] **Vercel AI SDK v7 + streaming** — emit `LanguageModelV4Middleware` (`specificationVersion:'v4'`), read nested `usage.inputTokens.total`; add `wrapStream` TransformStream metering on the `type:'finish'` `totalUsage`; auto-detect spec version to share one entry point with v5. Test: v7 nested mock → same USD as v5; stream finish part metered once.
+- [ ] **LangChain.js handler** — `BudgetGuardHandler extends BaseCallbackHandler`: `handleLLMEnd` meters (prefer `generations[0][0].message.usage_metadata`, fall back to `llmOutput.tokenUsage` — never both), `handleChatModelStart`/`handleLLMStart` throws pre-call over cap. Test: both usage shapes present → recorded once; over-cap start → throws.
+- [ ] **LlamaIndex.TS** — `attachBudgetGuard(Settings)` metering via `callbackManager.on("llm-end", ...)` reading `response.raw` (per-provider via normalizeUsage) + `wrapLLM(llm)` for the pre-call cap (event is async, can't block). Test: fake llm-end (OpenAI/Anthropic/Google raw) → same USD; wrapLLM `.chat()` throws over cap.
+- [ ] **Mastra** — `budgetGuardProcessor()` implementing `Processor` (`processLLMRequest` pre-call throw, `processLLMResponse` meter), wired via `inputProcessors`/`outputProcessors`; document AI SDK `wrapLanguageModel` passthrough. Test: processor meters from mock response; throws over cap pre-call.
+
+## Phase 4 — Accuracy & robustness
+- [ ] **Redis atomicity (Lua)** — replace check-then-INCRBYFLOAT with a `SCRIPT LOAD`+`EVALSHA` Lua check-and-increment (return -1 = cap exceeded, no mutation) to kill the TOCTOU race. Test: 100 concurrent $0.10 adds vs $5 cap → final ≤ $5.00.
+- [ ] **Monthly caps + IANA timezone** — add `period:'monthly'` and `timezone` options; daily/monthly keys are calendar-aligned in the configured TZ (not just UTC); store TTL aligns to next boundary; invalid TZ throws at construction. Test: `03:30Z` with `America/New_York` → daily key `2026-06-30`.
+- [ ] **Retry-storm detection** — guard the full retry cycle (outer promise), add `retryCount` to spend records, expose `retryStormThreshold` emitting a `retryStorm` event; spendReport surfaces `{retryStorms, totalRetries}`. Test: 3 retries → recorded once for final attempt, one storm event over threshold.
+- [ ] **Built-in estimator helper + new-tokenizer correction** — thin `estimateUsage` helper using a tokenizer as an *optional* peer dep; apply the ~1.3× multiplier for Opus 4.7+/Sonnet 5/Fable/Mythos (newer tokenizer ≈30% more tokens); older models unchanged. Test: same text differs ≥25% between tokenizer generations; missing model → conservative 1.3× + warning.
+- [ ] **Tool/function-call overhead in estimateUsage** — add per-model tool-schema overhead (e.g. Anthropic ~290 tokens w/ `tool_choice:auto`) to pre-call estimates; unknown model throws. Test: estimate with `tools` adds overhead; without `tools` adds none.
+- [ ] **Typed per-provider helpers** — `guardOpenAI()` / `guardAnthropic()` (and gemini) thin wrappers for nicer ergonomics + better types. Test: each wraps and caps a mock client of that provider.
+
+## Phase 5 — DX & testing
+- [ ] **Test helpers (`budget-guard/testing`)** — export `buildOpenAIUsage()`/`buildAnthropicUsage()` factories, `createFixedClock(iso)` for reset-boundary tests, `FakeSpendStore` (records operations), and `simulateConcurrentIncrements(store,...)`. Test: factories default to 0 + apply overrides; fixed clock drives key generation.
 
 ## Later / hosted (NOT built into this free package)
 - [ ] Optional CLI (`budget-guard report`) backed by a file/redis store.
