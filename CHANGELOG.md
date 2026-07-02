@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Public `onSpend` callback (`GuardOptions`) — emits a `SpendEvent`
+  (`{ project, feature, model, usd, dayTotalUsd }`) on every successful call, so
+  per-call cost can be piped into your own logs, traces, or dashboard. The
+  observability half of the "cap + traces" safety story (promoted from an
+  internal hook to public API).
+
 ## [0.3.0] - 2026-07-02
 
 ### Added

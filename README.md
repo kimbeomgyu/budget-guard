@@ -105,6 +105,29 @@ const ai = guard(openai.chat.completions, {
 });
 ```
 
+## See every call's cost (observability)
+
+A hard cap stops the bleeding; `onSpend` lets you *watch* it. It fires on every
+successful call with a `SpendEvent`, so you can pipe per-call cost straight into
+your logs, traces, or a dashboard:
+
+```ts
+const ai = guard(openai.chat.completions, {
+  project: 'my-app',
+  dailyCapUSD: 50,
+  onSpend: (e) => {
+    // { project, feature, model, usd, dayTotalUsd }
+    console.log(JSON.stringify({ evt: 'llm_spend', ...e }));
+  },
+  onExceeded: ({ project, spentUsd, capUsd }) => {
+    metrics.increment('llm.cap_hit', { project }); // fires before block/warn
+  },
+});
+```
+
+Keep the callback light — it runs synchronously just before the response is
+returned. Push heavy work (network, disk) onto a queue.
+
 ## Options
 
 ```ts
@@ -114,6 +137,8 @@ guard(client, {
   onCap: 'block',        // 'block' (throw) | 'warn' (log only). default 'block'
   store: myStore,        // optional SpendStore (default: in-memory, per-process)
   estimateUsage: fn,     // optional: block before a call would exceed the cap
+  onSpend: fn,           // optional: SpendEvent per successful call (logs/traces)
+  onExceeded: fn,        // optional: fires when the cap is hit (before block/warn)
 });
 ```
 

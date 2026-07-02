@@ -1,22 +1,16 @@
 import { cost } from './cost.js';
 import type { SpendStore } from './store.js';
 import { MemoryStore } from './store.js';
-import type { GuardOptions, Usage } from './types.js';
+import type { GuardOptions, SpendEvent, Usage } from './types.js';
 import { normalizeUsage } from './usage.js';
 
-/** 호출별 비용 이벤트 (대시보드/로그용). */
-export interface SpendEvent {
-  project: string;
-  feature: string;
-  model: string;
-  usd: number;
-  dayTotalUsd: number;
-}
+// SpendEvent는 types.ts로 이동(공개 GuardOptions.onSpend가 참조). 하위호환 위해 여기서도 재노출.
+export type { SpendEvent } from './types.js';
 
 interface GuardInternals<R> {
   /** 테스트용 주입 시계. 기본 실제 시각. */
   now?: () => Date;
-  /** 비용 발생 시 콜백 (로깅/대시보드 전송). */
+  /** (레거시/테스트용) 비용 콜백. 공개 API는 GuardOptions.onSpend. 둘 다 주면 opts 우선. */
   onSpend?: (e: SpendEvent) => void;
   /** 제공자 응답에서 토큰 usage를 직접 뽑는 추출기 (자동 인식 안 될 때). */
   usageOf?: (res: R) => Usage;
@@ -66,6 +60,7 @@ export function guard<R extends object>(
   const now = internals.now ?? (() => new Date());
   const onCap = opts.onCap ?? 'block';
   const store: SpendStore = opts.store ?? defaultStore;
+  const onSpend = opts.onSpend ?? internals.onSpend;
   const extract =
     internals.usageOf ?? ((res: R) => normalizeUsage((res as { usage?: unknown }).usage));
 
@@ -104,7 +99,7 @@ export function guard<R extends object>(
       const dayTotalUsd = await store.add(totalKey, usd);
       await store.add(`${opts.project}${SEP}${feature}${SEP}${day}`, usd);
 
-      internals.onSpend?.({ project: opts.project, feature, model: args.model, usd, dayTotalUsd });
+      onSpend?.({ project: opts.project, feature, model: args.model, usd, dayTotalUsd });
       return res;
     },
   };
