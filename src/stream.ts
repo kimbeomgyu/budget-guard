@@ -9,8 +9,17 @@ export interface StreamUsageReader {
 }
 
 /** provider 힌트에 맞는 스트림 usage 리더를 고른다. 미지정/openai는 OpenAI 리더. */
-export function streamUsageReader(provider: 'openai' | 'anthropic' | undefined): StreamUsageReader {
-  return provider === 'anthropic' ? anthropicStreamReader() : openaiStreamReader();
+export function streamUsageReader(
+  provider: 'openai' | 'anthropic' | 'gemini' | undefined,
+): StreamUsageReader {
+  switch (provider) {
+    case 'anthropic':
+      return anthropicStreamReader();
+    case 'gemini':
+      return geminiStreamReader();
+    default:
+      return openaiStreamReader();
+  }
 }
 
 const num = (v: unknown): number => (typeof v === 'number' ? v : 0);
@@ -24,6 +33,23 @@ function openaiStreamReader(): StreamUsageReader {
   return {
     observe(chunk) {
       const u = (chunk as { usage?: unknown } | null)?.usage;
+      if (u != null) raw = u;
+    },
+    result() {
+      return raw == null ? null : normalizeUsage(raw);
+    },
+  };
+}
+
+/**
+ * Gemini: 스트림 청크의 `usageMetadata`(promptTokenCount 등). 마지막 청크가 누적 총합을
+ * 담으므로 마지막 non-null을 사용. Gemini 모양이라 normalizeUsage로 처리.
+ */
+function geminiStreamReader(): StreamUsageReader {
+  let raw: unknown = null;
+  return {
+    observe(chunk) {
+      const u = (chunk as { usageMetadata?: unknown } | null)?.usageMetadata;
       if (u != null) raw = u;
     },
     result() {

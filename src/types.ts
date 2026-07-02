@@ -39,10 +39,11 @@ export interface GuardOptions {
   /**
    * (선택) 스트리밍 호출에서 provider를 명시. 프로바이더마다 usage 전달 방식이 달라서 필요.
    * - 'openai' | 미지정: 최종 청크의 usage를 읽고 `stream_options.include_usage`를 자동 주입.
-   * - 'anthropic': message_start(input/캐시)+message_delta(누적 output)에서 usage를 조립하고, stream_options는 주입하지 않음.
+   * - 'anthropic': message_start(input/캐시)+message_delta(누적 output)에서 usage를 조립. stream_options 주입 안 함.
+   * - 'gemini': 스트림 청크의 `usageMetadata`(마지막 누적본)로 정산. stream_options 주입 안 함.
    * 비스트리밍 호출에는 영향 없음(응답 모양으로 자동 인식).
    */
-  provider?: 'openai' | 'anthropic';
+  provider?: 'openai' | 'anthropic' | 'gemini';
   /**
    * 지출 저장소. 기본은 프로세스 공유 MemoryStore.
    * 여러 인스턴스가 캡을 공유하려면 redisStore 등을 넘긴다.

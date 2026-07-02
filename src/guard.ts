@@ -103,8 +103,8 @@ export function guard<R extends object>(
       // --- 스트리밍: 청크를 그대로 흘려보내며, provider별 리더로 usage를 모아 정산 ---
       if (args.stream === true) {
         // OpenAI(미지정 포함)만 마지막 청크에 usage를 실으려면 include_usage 주입이 필요.
-        // Anthropic 요청에 stream_options를 넣으면 안 되므로 provider가 anthropic이면 주입 안 함.
-        const injectUsageFlag = opts.provider !== 'anthropic';
+        // Anthropic/Gemini 요청엔 stream_options를 넣으면 안 되므로 openai/미지정일 때만 주입.
+        const injectUsageFlag = opts.provider === undefined || opts.provider === 'openai';
         const callArgs = injectUsageFlag
           ? {
               ...args,

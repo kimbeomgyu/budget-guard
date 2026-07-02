@@ -138,7 +138,8 @@ const stream = await ai.create({ model: 'claude-sonnet-4-6', stream: true, max_t
 for await (const event of stream) { /* ... */ }
 ```
 
-Gemini streaming is on the roadmap.
+For **Gemini** streaming, set `provider: 'gemini'` — usage comes from each chunk's
+`usageMetadata` (the last one carries the totals).
 
 ## See every call's cost (observability)
 
@@ -174,7 +175,7 @@ guard(client, {
   estimateUsage: fn,     // optional: block before a call would exceed the cap
   onSpend: fn,           // optional: SpendEvent per successful call (logs/traces)
   onExceeded: fn,        // optional: fires when the cap is hit (before block/warn)
-  provider: 'anthropic', // optional: 'openai' (default) | 'anthropic' — for streaming
+  provider: 'anthropic', // optional: 'openai' (default) | 'anthropic' | 'gemini' — for streaming
 });
 ```
 
