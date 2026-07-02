@@ -149,6 +149,14 @@ const ai = guard(openai.chat.completions, { project: 'my-app', dailyCapUSD: 50, 
 // over cap → logs a warning, still calls. Good for easing in.
 ```
 
+## Examples
+
+Runnable, no API key needed — see [`examples/`](./examples):
+
+- [`basic-cap.mjs`](./examples/basic-cap.mjs) — hard cap + per-feature `spendReport()`
+- [`cost-observability.mjs`](./examples/cost-observability.mjs) — stream per-call cost via `onSpend`
+- [`redis-fleet.mjs`](./examples/redis-fleet.mjs) — one shared cap across a worker fleet
+
 ## Notes (v0.2)
 
 - **Multi-instance + persistence** via a pluggable `SpendStore` (in-memory default, Redis adapter included, or bring your own).
