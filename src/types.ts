@@ -4,6 +4,10 @@ import type { SpendStore } from './store.js';
 export interface Usage {
   input: number;
   output: number;
+  /** (선택) 입력 중 캐시된 토큰 수 — 보통 할인 요율로 과금됨. */
+  cachedInput?: number;
+  /** (선택) 추론(thinking) 토큰 수 — 보통 출력 요율로 과금됨. */
+  reasoning?: number;
 }
 
 /** guard()에 넘기는 설정. */
