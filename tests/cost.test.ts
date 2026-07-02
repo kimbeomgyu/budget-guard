@@ -15,4 +15,10 @@ describe('cost()', () => {
   it('모르는 모델이면 에러를 던진다', () => {
     expect(() => cost('not-a-real-model', { input: 1, output: 1 })).toThrow();
   });
+
+  it('Bedrock 지역 프리픽스(us./eu.)는 기본 모델 행으로 해석된다', () => {
+    const u = { input: 1000, output: 1000 };
+    expect(cost('us.anthropic.claude-sonnet-4', u)).toBe(cost('anthropic.claude-sonnet-4', u));
+    expect(cost('eu.anthropic.claude-sonnet-4', u)).toBeCloseTo(0.003 + 0.015, 6);
+  });
 });
