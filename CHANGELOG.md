@@ -6,6 +6,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **OpenAI streaming** support — `guard(...).create({ stream: true })` now meters
+  streamed responses. Chunks pass straight through to the caller; usage is read
+  from the final chunk and billed once when the stream finishes. `stream_options:
+  { include_usage: true }` is injected automatically. The pre-call cap still
+  applies. (Anthropic/Gemini streaming to follow.)
+
 ## [0.3.1] - 2026-07-02
 
 ### Added

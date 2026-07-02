@@ -39,7 +39,7 @@ issue templates + config · PR template · dependabot · CHANGELOG · README bad
 - [x] **`examples/` directory** — runnable, no-API-key examples: `basic-cap` (cap + spendReport), `cost-observability` (`onSpend`/`onExceeded`), `redis-fleet` (shared cap across worker instances via `redisStore`, backed by an in-memory shim so it runs offline — lands @raju_dandigam's "much more useful for worker fleets" note; the Redis store shipped in v0.2 *after* the launch article).
 
 ## Phase 2 — Streaming usage (correctness gap)
-- [ ] **OpenAI streaming** — when `stream:true`, inject `stream_options.include_usage:true`, read usage from the terminal `choices:[]` chunk, ignore `null` usage on intermediate chunks. Test: 5 null chunks + final usage chunk → cost recorded once; assert flag injected.
+- [x] **OpenAI streaming** — when `stream:true`, inject `stream_options.include_usage:true`, read usage from the terminal `choices:[]` chunk, ignore `null` usage on intermediate chunks. Test: 5 null chunks + final usage chunk → cost recorded once; assert flag injected. (Chunks pass through unchanged; billed once after the stream is consumed; pre-call cap still applies.)
 - [ ] **Anthropic streaming** — capture input+cache from `message_start.message.usage`; on `message_delta.usage` REPLACE output (cumulative, not additive). Test: start `{input:100,output:1}` + delta `{output:120}` → bills 100in/120out (not 121).
 - [ ] **Gemini streaming** — aggregate `usageMetadata` from the final streamed chunk. Test: streamed chunks ending with usageMetadata → recorded once.
 
