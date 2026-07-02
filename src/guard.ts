@@ -86,6 +86,11 @@ export function guard<R extends object>(
         ? projected > opts.dailyCapUSD
         : spentToday >= opts.dailyCapUSD;
       if (over) {
+        opts.onExceeded?.({
+          project: opts.project,
+          spentUsd: spentToday,
+          capUsd: opts.dailyCapUSD,
+        });
         const err = new BudgetExceededError(opts.project, spentToday, opts.dailyCapUSD);
         if (onCap === 'block') throw err;
         console.warn(err.message);

@@ -13,6 +13,7 @@ type RawUsage = Record<string, unknown> & {
   completion_tokens_details?: { reasoning_tokens?: number };
   input_tokens_details?: { cached_tokens?: number };
   output_tokens_details?: { reasoning_tokens?: number };
+  billed_units?: { input_tokens?: number; output_tokens?: number };
 };
 
 const num = (v: unknown): number | undefined => (typeof v === 'number' ? v : undefined);
@@ -68,6 +69,17 @@ export function normalizeUsage(raw: unknown): Usage {
       num(u.cacheReadInputTokens),
       undefined,
     );
+  }
+  // Cohere — bill from `billed_units` (not the raw `tokens` field)
+  if (u.billed_units && typeof u.billed_units === 'object') {
+    const b = u.billed_units;
+    if (typeof b.input_tokens === 'number') {
+      return withExtras(
+        { input: b.input_tokens, output: num(b.output_tokens) ?? 0 },
+        num(u.cached_tokens),
+        undefined,
+      );
+    }
   }
   throw new UnknownUsageShapeError(raw);
 }

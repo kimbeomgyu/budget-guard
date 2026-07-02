@@ -67,4 +67,15 @@ describe('guard()', () => {
     expect(await spendReport('iso', '2026-06-28', s)).toHaveProperty('x');
     expect(await spendReport('iso', '2026-06-28')).toEqual({}); // 기본 전역엔 없음
   });
+
+  it('onExceeded 콜백을 캡 초과 시 컨텍스트와 함께 호출한다', async () => {
+    const calls: Array<{ project: string; spentUsd: number; capUsd: number }> = [];
+    const ai = guard(
+      fakeClient(),
+      { project: 'cb', dailyCapUSD: 0, onExceeded: (info) => calls.push(info) },
+      { now: fixedNow },
+    );
+    await expect(ai.create({ model: 'gpt-4o' })).rejects.toBeInstanceOf(BudgetExceededError);
+    expect(calls).toEqual([{ project: 'cb', spentUsd: 0, capUsd: 0 }]);
+  });
 });
