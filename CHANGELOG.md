@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   per-call cost can be piped into your own logs, traces, or dashboard. The
   observability half of the "cap + traces" safety story (promoted from an
   internal hook to public API).
+- `examples/` directory — runnable, no-API-key examples: `basic-cap`,
+  `cost-observability` (`onSpend`), and `redis-fleet` (one shared cap across
+  worker instances).
 
 ## [0.3.0] - 2026-07-02
 
