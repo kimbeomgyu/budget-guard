@@ -10,6 +10,24 @@ export interface Usage {
   reasoning?: number;
 }
 
+/**
+ * 성공한 호출 한 건마다 방출되는 비용 이벤트.
+ * `onSpend`로 받아 로깅·트레이싱·대시보드로 흘려보낼 수 있다
+ * (하드 캡이 "차단"이라면 이건 "관측"쪽 절반).
+ */
+export interface SpendEvent {
+  /** 비용을 묶는 단위(=GuardOptions.project). */
+  project: string;
+  /** 이 호출의 기능 태그(create 두 번째 인자). 기본 'default'. */
+  feature: string;
+  /** 호출에 쓰인 모델 id. */
+  model: string;
+  /** 이 호출 하나의 비용(USD). */
+  usd: number;
+  /** 이 project의 그날 누적 비용(USD, 이 호출 반영 후). */
+  dayTotalUsd: number;
+}
+
 /** guard()에 넘기는 설정. */
 export interface GuardOptions {
   /** 비용을 묶는 단위(예: 'agent-worker'). */
@@ -30,4 +48,10 @@ export interface GuardOptions {
   estimateUsage?: (args: { model: string; [k: string]: unknown }) => Usage;
   /** (선택) 캡 초과가 감지될 때 호출되는 콜백. block/warn 동작 전에 실행됨. */
   onExceeded?: (info: { project: string; spentUsd: number; capUsd: number }) => void;
+  /**
+   * (선택) 성공한 호출마다 비용 이벤트를 방출하는 콜백.
+   * 하드 캡과 짝을 이루는 "관측" 훅 — 호출별 비용을 로그/트레이스/대시보드로 흘려보낸다.
+   * 응답을 돌려주기 직전에 동기로 실행되므로 가볍게 유지할 것(무거운 작업은 큐에).
+   */
+  onSpend?: (event: SpendEvent) => void;
 }

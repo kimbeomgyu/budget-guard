@@ -68,6 +68,30 @@ describe('guard()', () => {
     expect(await spendReport('iso', '2026-06-28')).toEqual({}); // 기본 전역엔 없음
   });
 
+  it('onSpend 콜백을 성공 호출마다 비용 이벤트와 함께 호출한다 (누적 반영)', async () => {
+    const events: Array<{
+      project: string;
+      feature: string;
+      model: string;
+      usd: number;
+      dayTotalUsd: number;
+    }> = [];
+    const ai = guard(
+      fakeClient(),
+      { project: 'obs', dailyCapUSD: 99, onSpend: (e) => events.push(e) },
+      { now: fixedNow },
+    );
+    await ai.create({ model: 'gpt-4o' }, { feature: 'summarize' });
+    await ai.create({ model: 'gpt-4o' }, { feature: 'embed' });
+    expect(events).toHaveLength(2);
+    expect(events[0]).toMatchObject({ project: 'obs', feature: 'summarize', model: 'gpt-4o' });
+    expect(events[0].usd).toBeCloseTo(0.0125, 6);
+    expect(events[0].dayTotalUsd).toBeCloseTo(0.0125, 6);
+    // dayTotalUsd는 project 누적 — 두 번째 이벤트는 두 호출 합계.
+    expect(events[1].feature).toBe('embed');
+    expect(events[1].dayTotalUsd).toBeCloseTo(0.025, 6);
+  });
+
   it('onExceeded 콜백을 캡 초과 시 컨텍스트와 함께 호출한다', async () => {
     const calls: Array<{ project: string; spentUsd: number; capUsd: number }> = [];
     const ai = guard(
