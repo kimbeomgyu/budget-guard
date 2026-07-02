@@ -1,6 +1,7 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { __resetDefaultStore, BudgetExceededError, guard, spendReport } from '../src/guard';
 import { MemoryStore } from '../src/store';
+import { UnknownUsageShapeError } from '../src/usage';
 
 const fixedNow = () => new Date('2026-06-28T10:00:00Z');
 
@@ -101,5 +102,43 @@ describe('guard()', () => {
     );
     await expect(ai.create({ model: 'gpt-4o' })).rejects.toBeInstanceOf(BudgetExceededError);
     expect(calls).toEqual([{ project: 'cb', spentUsd: 0, capUsd: 0 }]);
+  });
+
+  describe('onMissingUsage', () => {
+    // usage 없는 응답을 주는 클라이언트
+    const noUsageClient = { create: async () => ({ id: 'x', choices: [] }) };
+
+    afterEach(() => vi.restoreAllMocks());
+
+    it('기본값은 usage 누락 시 UnknownUsageShapeError를 던진다', async () => {
+      const ai = guard(noUsageClient, { project: 'mu', dailyCapUSD: 99 }, { now: fixedNow });
+      await expect(ai.create({ model: 'gpt-4o' })).rejects.toBeInstanceOf(UnknownUsageShapeError);
+    });
+
+    it("'zero'면 던지지 않고 $0로 청구하며 경고를 남긴다", async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const s = new MemoryStore();
+      const ai = guard(
+        noUsageClient,
+        { project: 'mu', dailyCapUSD: 99, store: s, onMissingUsage: 'zero' },
+        { now: fixedNow },
+      );
+      await expect(ai.create({ model: 'gpt-4o' }, { feature: 'f' })).resolves.toBeTruthy();
+      const rep = await spendReport('mu', '2026-06-28', s);
+      expect(rep.f).toBe(0); // $0로 적립
+      expect(warn).toHaveBeenCalledOnce();
+    });
+
+    it("'zero'는 캡을 넘기지 않으므로 이후 호출을 막지 않는다", async () => {
+      const s = new MemoryStore();
+      const ai = guard(
+        noUsageClient,
+        { project: 'mu', dailyCapUSD: 0.01, store: s, onMissingUsage: 'zero' },
+        { now: fixedNow },
+      );
+      vi.spyOn(console, 'warn').mockImplementation(() => {});
+      await ai.create({ model: 'gpt-4o' });
+      await expect(ai.create({ model: 'gpt-4o' })).resolves.toBeTruthy(); // 여전히 0 → 안 막힘
+    });
   });
 });

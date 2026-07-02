@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (cumulative output — replaced, not summed). With `'gemini'`, usage is read from
   each chunk's `usageMetadata` (the last carries the totals). For both, the
   OpenAI-only `stream_options` injection is skipped.
+- `onMissingUsage: 'throw' | 'zero'` (`GuardOptions`, default `'throw'`) — controls
+  what happens when a response/stream has no recognizable usage. `'throw'` keeps
+  the current behavior (never silently under-counts); `'zero'` logs a warning and
+  bills $0 so the call still succeeds. Applies to both streaming and non-streaming.
 
 ## [0.3.1] - 2026-07-02
 

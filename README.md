@@ -176,6 +176,7 @@ guard(client, {
   onSpend: fn,           // optional: SpendEvent per successful call (logs/traces)
   onExceeded: fn,        // optional: fires when the cap is hit (before block/warn)
   provider: 'anthropic', // optional: 'openai' (default) | 'anthropic' | 'gemini' — for streaming
+  onMissingUsage: 'zero',// optional: 'throw' (default) | 'zero' — when a response has no usage
 });
 ```
 

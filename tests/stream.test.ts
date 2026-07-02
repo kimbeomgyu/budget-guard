@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { cost } from '../src/cost';
 import { __resetDefaultStore, BudgetExceededError, guard, spendReport } from '../src/guard';
 import { MemoryStore } from '../src/store';
@@ -169,6 +169,30 @@ describe('guard() streaming', () => {
     await drain(stream as AsyncIterable<unknown>);
     expect(received[0].stream).toBe(true);
     expect(received[0].stream_options).toBeUndefined(); // Anthropic에는 주입 금지
+  });
+
+  it('usage 없이 끝난 스트림: 기본은 소비 완료 시 던지고, onMissingUsage:zero면 넘어간다', async () => {
+    const noUsage = [{ choices: [{ delta: { content: 'a' } }], usage: null }];
+    // 기본('throw'): 스트림을 다 소비하면 던진다
+    const t = fakeStreamClient(noUsage);
+    const aiT = guard(t.client, { project: 'mu', dailyCapUSD: 99 }, { now: fixedNow });
+    const st = await aiT.create({ model: 'gpt-4o', stream: true });
+    await expect(drain(st as AsyncIterable<unknown>)).rejects.toThrow();
+
+    // 'zero': 던지지 않고 $0
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const s = new MemoryStore();
+    const z = fakeStreamClient(noUsage);
+    const aiZ = guard(
+      z.client,
+      { project: 'muz', dailyCapUSD: 99, store: s, onMissingUsage: 'zero' },
+      { now: fixedNow },
+    );
+    const sz = await aiZ.create({ model: 'gpt-4o', stream: true }, { feature: 'f' });
+    await drain(sz as AsyncIterable<unknown>);
+    expect((await spendReport('muz', '2026-06-28', s)).f).toBe(0);
+    expect(warn).toHaveBeenCalledOnce();
+    warn.mockRestore();
   });
 
   it('캡을 넘으면 스트리밍 호출도 호출 전에 차단한다', async () => {

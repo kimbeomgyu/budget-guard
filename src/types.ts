@@ -37,6 +37,12 @@ export interface GuardOptions {
   /** 캡 초과 시 동작. 기본 'block'(throw) / 'warn'(경고만). */
   onCap?: 'block' | 'warn';
   /**
+   * (선택) 응답/스트림에 usage가 없거나 인식 불가일 때 동작.
+   * - 'throw'(기본): UnknownUsageShapeError를 던진다(모르는 걸 0으로 세지 않음 — 예산 정확도 안전).
+   * - 'zero': 경고를 찍고 $0로 청구해 호출 흐름을 유지한다(정확도보다 앱 복원력 우선).
+   */
+  onMissingUsage?: 'throw' | 'zero';
+  /**
    * (선택) 스트리밍 호출에서 provider를 명시. 프로바이더마다 usage 전달 방식이 달라서 필요.
    * - 'openai' | 미지정: 최종 청크의 usage를 읽고 `stream_options.include_usage`를 자동 주입.
    * - 'anthropic': message_start(input/캐시)+message_delta(누적 output)에서 usage를 조립. stream_options 주입 안 함.
