@@ -6,6 +6,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-07-02
+
+### Added
+
+- Provider usage coverage beyond OpenAI/Anthropic: **Google Gemini**
+  (`usageMetadata`), **AWS Bedrock Converse** (camelCase + `us.`/`eu.` region-prefix
+  resolution), **Azure Responses API**, and **Cohere** (`billed_units`).
+- Optional `cachedInput` / `reasoning` fields on `Usage`, extracted from OpenAI
+  (`prompt_tokens_details.cached_tokens`, `completion_tokens_details.reasoning_tokens`),
+  Anthropic (`cache_read_input_tokens`), Gemini, and Azure shapes.
+- **Per-class cache cost model**: `cost()` bills cached input tokens at a model's
+  `cachedIn` rate (falling back to the input rate).
+- Expanded `PRICES` with current models (gpt-4.1, o3/o4-mini, Claude Opus 4.8 /
+  Sonnet 4.6 / Haiku 4.5, Gemini 2.5 pro/flash, DeepSeek, Grok) and an optional
+  `retiresOn` deprecation field.
+- `onExceeded` callback (`GuardOptions`), fired with `{ project, spentUsd, capUsd }`
+  when the cap is hit.
+- Typed `UnknownUsageShapeError`.
+
+### Changed
+
+- `normalizeUsage` now throws the typed `UnknownUsageShapeError` (a subclass of
+  `Error`) for missing/unrecognized usage instead of a generic error — never
+  silently returns zero. Backward compatible for `try/catch (Error)`.
+
 ## [0.2.2] - 2026-07-01
 
 ### Changed
@@ -52,7 +77,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `BudgetExceededError`), per-feature cost attribution (`spendReport`), and
   auto-detection of OpenAI / Anthropic usage shapes.
 
-[Unreleased]: https://github.com/kimbeomgyu/budget-guard/compare/v0.2.2...HEAD
+[Unreleased]: https://github.com/kimbeomgyu/budget-guard/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/kimbeomgyu/budget-guard/compare/v0.2.2...v0.3.0
 [0.2.2]: https://github.com/kimbeomgyu/budget-guard/compare/v0.2.1...v0.2.2
 [0.2.1]: https://github.com/kimbeomgyu/budget-guard/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/kimbeomgyu/budget-guard/releases/tag/v0.2.0
