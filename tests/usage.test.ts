@@ -37,6 +37,34 @@ describe('normalizeUsage()', () => {
     ).toEqual({ input: 100, output: 50, cachedInput: 30 });
   });
 
+  it('Gemini usageMetadata를 정규화한다 (cachedContent→cachedInput, thoughts→reasoning)', () => {
+    expect(
+      normalizeUsage({
+        promptTokenCount: 1000,
+        candidatesTokenCount: 200,
+        cachedContentTokenCount: 800,
+        thoughtsTokenCount: 128,
+      }),
+    ).toEqual({ input: 1000, output: 200, cachedInput: 800, reasoning: 128 });
+  });
+
+  it('Bedrock Converse(camelCase)를 정규화한다', () => {
+    expect(
+      normalizeUsage({ inputTokens: 30, outputTokens: 628, cacheReadInputTokens: 10 }),
+    ).toEqual({ input: 30, output: 628, cachedInput: 10 });
+  });
+
+  it('Azure Responses API(input_tokens + *_tokens_details)를 정규화한다', () => {
+    expect(
+      normalizeUsage({
+        input_tokens: 16,
+        output_tokens: 40,
+        input_tokens_details: { cached_tokens: 8 },
+        output_tokens_details: { reasoning_tokens: 12 },
+      }),
+    ).toEqual({ input: 16, output: 40, cachedInput: 8, reasoning: 12 });
+  });
+
   it('usage가 없거나 모르는 형태면 UnknownUsageShapeError를 던진다 (조용히 0 반환 금지)', () => {
     expect(() => normalizeUsage(undefined)).toThrow(UnknownUsageShapeError);
     expect(() => normalizeUsage(null)).toThrow(UnknownUsageShapeError);
