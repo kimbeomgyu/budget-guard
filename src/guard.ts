@@ -91,15 +91,39 @@ export function guard<R extends object>(
         console.warn(err.message);
       }
 
-      // --- 진짜 호출은 제공자에게 그대로 ---
+      // --- 비용 적립 + 기능별 귀속 (스트리밍/비스트리밍 공유) ---
+      const recordCost = async (usage: Usage): Promise<void> => {
+        const usd = cost(args.model, usage);
+        const dayTotalUsd = await store.add(totalKey, usd);
+        await store.add(`${opts.project}${SEP}${feature}${SEP}${day}`, usd);
+        onSpend?.({ project: opts.project, feature, model: args.model, usd, dayTotalUsd });
+      };
+
+      // --- 스트리밍: 청크를 그대로 흘려보내며, 최종 청크의 usage로 정산 ---
+      // OpenAI는 stream_options.include_usage를 켜야 마지막 청크에 usage가 실린다.
+      if (args.stream === true) {
+        const streamArgs = {
+          ...args,
+          stream_options: {
+            ...((args.stream_options as Record<string, unknown>) ?? {}),
+            include_usage: true,
+          },
+        };
+        const stream = (await client.create(streamArgs)) as AsyncIterable<{ usage?: unknown }>;
+        async function* metered(): AsyncGenerator<unknown> {
+          let raw: unknown;
+          for await (const chunk of stream) {
+            if (chunk.usage != null) raw = chunk.usage; // usage는 최종 청크에만 실림
+            yield chunk;
+          }
+          if (raw != null) await recordCost(normalizeUsage(raw));
+        }
+        return metered() as unknown as R;
+      }
+
+      // --- 비스트리밍: 응답을 그대로 돌려주고 usage로 정산 ---
       const res = await client.create(args);
-
-      // --- 비용 적립 + 기능별 귀속 ---
-      const usd = cost(args.model, extract(res));
-      const dayTotalUsd = await store.add(totalKey, usd);
-      await store.add(`${opts.project}${SEP}${feature}${SEP}${day}`, usd);
-
-      onSpend?.({ project: opts.project, feature, model: args.model, usd, dayTotalUsd });
+      await recordCost(extract(res));
       return res;
     },
   };

@@ -105,6 +105,26 @@ const ai = guard(openai.chat.completions, {
 });
 ```
 
+## Streaming
+
+Streaming calls are metered too — just pass `stream: true` as usual. budget-guard
+passes every chunk straight through to you and reads the usage from the final
+chunk, so the cost lands once, after the stream finishes:
+
+```ts
+const ai = guard(openai.chat.completions, { project: 'my-app', dailyCapUSD: 50 });
+
+const stream = await ai.create({ model: 'gpt-4o', stream: true }, { feature: 'chat' });
+for await (const chunk of stream) {
+  process.stdout.write(chunk.choices[0]?.delta?.content ?? '');
+}
+// cost is recorded once the loop finishes
+```
+
+It injects `stream_options: { include_usage: true }` for you (OpenAI only sends
+usage on the final chunk when that flag is set). The cap is still enforced
+_before_ the call. Anthropic/Gemini streaming are on the roadmap.
+
 ## See every call's cost (observability)
 
 A hard cap stops the bleeding; `onSpend` lets you *watch* it. It fires on every
