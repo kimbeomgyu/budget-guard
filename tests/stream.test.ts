@@ -126,6 +126,35 @@ describe('guard() streaming', () => {
     );
   });
 
+  it('Gemini 스트리밍: 마지막 usageMetadata(누적 총합)로 1회 정산한다', async () => {
+    const chunks = [
+      { candidates: [{ content: { parts: [{ text: '안' }] } }] }, // usageMetadata 없음
+      {
+        candidates: [{ content: { parts: [{ text: '녕' }] } }],
+        usageMetadata: { promptTokenCount: 1000, candidatesTokenCount: 200 },
+      }, // 중간 부분합
+      {
+        candidates: [{ content: { parts: [{ text: '!' }] } }],
+        usageMetadata: { promptTokenCount: 1000, candidatesTokenCount: 500 },
+      }, // 최종 총합
+    ];
+    const s = new MemoryStore();
+    const { client, received } = fakeStreamClient(chunks);
+    const ai = guard(
+      client,
+      { project: 'gem', dailyCapUSD: 99, store: s, provider: 'gemini' },
+      { now: fixedNow },
+    );
+    const stream = await ai.create(
+      { model: 'gemini-2.5-flash', stream: true },
+      { feature: 'chat' },
+    );
+    await drain(stream as AsyncIterable<unknown>);
+    const rep = await spendReport('gem', '2026-06-28', s);
+    expect(rep.chat).toBeCloseTo(cost('gemini-2.5-flash', { input: 1000, output: 500 }), 10);
+    expect(received[0].stream_options).toBeUndefined(); // Gemini에도 주입 금지
+  });
+
   it("provider가 'anthropic'이면 stream_options를 주입하지 않는다", async () => {
     const { client, received } = fakeStreamClient([
       { type: 'message_start', message: { usage: { input_tokens: 10, output_tokens: 1 } } },
