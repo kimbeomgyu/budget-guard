@@ -3,7 +3,7 @@ import type { SpendStore } from './store.js';
 import { MemoryStore } from './store.js';
 import { streamUsageReader } from './stream.js';
 import type { GuardOptions, SpendEvent, Usage } from './types.js';
-import { normalizeUsage } from './usage.js';
+import { normalizeUsage, UnknownUsageShapeError } from './usage.js';
 
 // SpendEvent는 types.ts로 이동(공개 GuardOptions.onSpend가 참조). 하위호환 위해 여기서도 재노출.
 export type { SpendEvent } from './types.js';
@@ -60,6 +60,7 @@ export function guard<R extends object>(
 ): { create(args: CreateArgs, tags?: { feature?: string }): Promise<R> } {
   const now = internals.now ?? (() => new Date());
   const onCap = opts.onCap ?? 'block';
+  const onMissingUsage = opts.onMissingUsage ?? 'throw';
   const store: SpendStore = opts.store ?? defaultStore;
   const onSpend = opts.onSpend ?? internals.onSpend;
   const extract =
@@ -100,6 +101,26 @@ export function guard<R extends object>(
         onSpend?.({ project: opts.project, feature, model: args.model, usd, dayTotalUsd });
       };
 
+      // usage가 없거나(null) 인식 실패(throw)일 때 onMissingUsage 정책 적용.
+      // 기본 'throw'(안전: 모르는 걸 0으로 세지 않음) / 'zero'(경고 후 $0 청구, 앱 흐름 유지).
+      const resolveUsage = (get: () => Usage | null): Usage => {
+        let u: Usage | null;
+        try {
+          u = get();
+        } catch (err) {
+          if (!(err instanceof UnknownUsageShapeError)) throw err;
+          u = null;
+        }
+        if (u != null) return u;
+        if (onMissingUsage === 'zero') {
+          console.warn(
+            `budget-guard: usage missing for model "${args.model}" — billing $0 (onMissingUsage: 'zero')`,
+          );
+          return { input: 0, output: 0 };
+        }
+        throw new UnknownUsageShapeError(null);
+      };
+
       // --- 스트리밍: 청크를 그대로 흘려보내며, provider별 리더로 usage를 모아 정산 ---
       if (args.stream === true) {
         // OpenAI(미지정 포함)만 마지막 청크에 usage를 실으려면 include_usage 주입이 필요.
@@ -121,15 +142,14 @@ export function guard<R extends object>(
             reader.observe(chunk);
             yield chunk;
           }
-          const usage = reader.result();
-          if (usage != null) await recordCost(usage);
+          await recordCost(resolveUsage(() => reader.result()));
         }
         return metered() as unknown as R;
       }
 
       // --- 비스트리밍: 응답을 그대로 돌려주고 usage로 정산 ---
       const res = await client.create(args);
-      await recordCost(extract(res));
+      await recordCost(resolveUsage(() => extract(res)));
       return res;
     },
   };
