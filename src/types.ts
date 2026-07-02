@@ -28,4 +28,6 @@ export interface GuardOptions {
    * 넘기는 호출 자체를 차단(overshoot 방지). 없으면 캡 초과 후 '다음' 호출을 차단.
    */
   estimateUsage?: (args: { model: string; [k: string]: unknown }) => Usage;
+  /** (선택) 캡 초과가 감지될 때 호출되는 콜백. block/warn 동작 전에 실행됨. */
+  onExceeded?: (info: { project: string; spentUsd: number; capUsd: number }) => void;
 }

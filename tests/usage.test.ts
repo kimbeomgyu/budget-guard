@@ -65,6 +65,16 @@ describe('normalizeUsage()', () => {
     ).toEqual({ input: 16, output: 40, cachedInput: 8, reasoning: 12 });
   });
 
+  it('Cohere billed_units에서 정규화한다 (raw tokens 아님)', () => {
+    expect(
+      normalizeUsage({
+        billed_units: { input_tokens: 100, output_tokens: 50 },
+        tokens: { input_tokens: 999, output_tokens: 999 },
+        cached_tokens: 20,
+      }),
+    ).toEqual({ input: 100, output: 50, cachedInput: 20 });
+  });
+
   it('usage가 없거나 모르는 형태면 UnknownUsageShapeError를 던진다 (조용히 0 반환 금지)', () => {
     expect(() => normalizeUsage(undefined)).toThrow(UnknownUsageShapeError);
     expect(() => normalizeUsage(null)).toThrow(UnknownUsageShapeError);
