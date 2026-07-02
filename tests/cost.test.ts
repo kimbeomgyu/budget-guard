@@ -21,4 +21,20 @@ describe('cost()', () => {
     expect(cost('us.anthropic.claude-sonnet-4', u)).toBe(cost('anthropic.claude-sonnet-4', u));
     expect(cost('eu.anthropic.claude-sonnet-4', u)).toBeCloseTo(0.003 + 0.015, 6);
   });
+
+  it('cachedInput은 cachedIn 요율로, 나머지 입력은 in 요율로 과금한다', () => {
+    // claude-sonnet-4-6: in 0.003, cachedIn 0.0003. input 1000 중 800 캐시:
+    // (200/1000)*0.003 + (800/1000)*0.0003 = 0.0006 + 0.00024 = 0.00084
+    expect(cost('claude-sonnet-4-6', { input: 1000, output: 0, cachedInput: 800 })).toBeCloseTo(
+      0.00084,
+      8,
+    );
+  });
+
+  it('cachedIn 요율이 없으면 캐시분도 in 요율로 과금한다', () => {
+    // anthropic.claude-sonnet-4: cachedIn 없음 → cached도 in(0.003)
+    expect(
+      cost('anthropic.claude-sonnet-4', { input: 1000, output: 0, cachedInput: 500 }),
+    ).toBeCloseTo(0.003, 8);
+  });
 });
