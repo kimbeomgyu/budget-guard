@@ -40,7 +40,7 @@ issue templates + config · PR template · dependabot · CHANGELOG · README bad
 
 ## Phase 2 — Streaming usage (correctness gap)
 - [x] **OpenAI streaming** — when `stream:true`, inject `stream_options.include_usage:true`, read usage from the terminal `choices:[]` chunk, ignore `null` usage on intermediate chunks. Test: 5 null chunks + final usage chunk → cost recorded once; assert flag injected. (Chunks pass through unchanged; billed once after the stream is consumed; pre-call cap still applies.)
-- [ ] **Anthropic streaming** — capture input+cache from `message_start.message.usage`; on `message_delta.usage` REPLACE output (cumulative, not additive). Test: start `{input:100,output:1}` + delta `{output:120}` → bills 100in/120out (not 121).
+- [x] **Anthropic streaming** — capture input+cache from `message_start.message.usage`; on `message_delta.usage` REPLACE output (cumulative, not additive). Test: start `{input:100,output:1}` + delta `{output:120}` → bills 100in/120out (not 121). (Gated by new `provider: 'anthropic'` hint; skips OpenAI `stream_options` injection. Reader lives in `src/stream.ts`.)
 - [ ] **Gemini streaming** — aggregate `usageMetadata` from the final streamed chunk. Test: streamed chunks ending with usageMetadata → recorded once.
 
 ## Phase 3 — Framework adapters (distribution as code)  ← strategic centerpiece

@@ -121,9 +121,24 @@ for await (const chunk of stream) {
 // cost is recorded once the loop finishes
 ```
 
-It injects `stream_options: { include_usage: true }` for you (OpenAI only sends
-usage on the final chunk when that flag is set). The cap is still enforced
-_before_ the call. Anthropic/Gemini streaming are on the roadmap.
+For OpenAI it injects `stream_options: { include_usage: true }` for you (OpenAI
+only sends usage on the final chunk when that flag is set). The cap is still
+enforced _before_ the call.
+
+For **Anthropic** streaming, set `provider: 'anthropic'` — it reads usage from the
+`message_start` / `message_delta` events and skips the OpenAI-only injection:
+
+```ts
+const ai = guard(anthropic.messages, {
+  project: 'my-app',
+  dailyCapUSD: 50,
+  provider: 'anthropic',
+});
+const stream = await ai.create({ model: 'claude-sonnet-4-6', stream: true, max_tokens: 1024 });
+for await (const event of stream) { /* ... */ }
+```
+
+Gemini streaming is on the roadmap.
 
 ## See every call's cost (observability)
 
@@ -159,6 +174,7 @@ guard(client, {
   estimateUsage: fn,     // optional: block before a call would exceed the cap
   onSpend: fn,           // optional: SpendEvent per successful call (logs/traces)
   onExceeded: fn,        // optional: fires when the cap is hit (before block/warn)
+  provider: 'anthropic', // optional: 'openai' (default) | 'anthropic' — for streaming
 });
 ```
 

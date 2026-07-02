@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
+import { cost } from '../src/cost';
 import { __resetDefaultStore, BudgetExceededError, guard, spendReport } from '../src/guard';
 import { MemoryStore } from '../src/store';
 
@@ -74,6 +75,71 @@ describe('guard() streaming', () => {
     expect(events).toHaveLength(1);
     expect(events[0].feature).toBe('chat');
     expect(events[0].usd).toBeCloseTo(0.0125, 6);
+  });
+
+  it('Anthropic 스트리밍: message_start(input)+message_delta(누적 output)로 정산하고 output은 교체한다', async () => {
+    const chunks = [
+      { type: 'message_start', message: { usage: { input_tokens: 100, output_tokens: 1 } } },
+      { type: 'content_block_delta', delta: { text: '안녕' } },
+      { type: 'message_delta', usage: { output_tokens: 120 } }, // 누적값
+      { type: 'message_stop' },
+    ];
+    const s = new MemoryStore();
+    const { client } = fakeStreamClient(chunks);
+    const ai = guard(
+      client,
+      { project: 'ant', dailyCapUSD: 99, store: s, provider: 'anthropic' },
+      { now: fixedNow },
+    );
+    const stream = await ai.create(
+      { model: 'claude-sonnet-4-6', stream: true, max_tokens: 200 },
+      { feature: 'chat' },
+    );
+    await drain(stream as AsyncIterable<unknown>);
+    const rep = await spendReport('ant', '2026-06-28', s);
+    // input 100 / output 120 로 청구 (1+120=121이 아님)
+    expect(rep.chat).toBeCloseTo(cost('claude-sonnet-4-6', { input: 100, output: 120 }), 10);
+    expect(rep.chat).not.toBeCloseTo(cost('claude-sonnet-4-6', { input: 100, output: 121 }), 10);
+  });
+
+  it('Anthropic 스트리밍의 캐시 읽기 토큰도 잡는다', async () => {
+    const chunks = [
+      {
+        type: 'message_start',
+        message: { usage: { input_tokens: 50, cache_read_input_tokens: 200, output_tokens: 1 } },
+      },
+      { type: 'message_delta', usage: { output_tokens: 30 } },
+    ];
+    const s = new MemoryStore();
+    const { client } = fakeStreamClient(chunks);
+    const ai = guard(
+      client,
+      { project: 'ant', dailyCapUSD: 99, store: s, provider: 'anthropic' },
+      { now: fixedNow },
+    );
+    const stream = await ai.create({ model: 'claude-sonnet-4-6', stream: true }, { feature: 'c' });
+    await drain(stream as AsyncIterable<unknown>);
+    const rep = await spendReport('ant', '2026-06-28', s);
+    expect(rep.c).toBeCloseTo(
+      cost('claude-sonnet-4-6', { input: 50, output: 30, cachedInput: 200 }),
+      10,
+    );
+  });
+
+  it("provider가 'anthropic'이면 stream_options를 주입하지 않는다", async () => {
+    const { client, received } = fakeStreamClient([
+      { type: 'message_start', message: { usage: { input_tokens: 10, output_tokens: 1 } } },
+      { type: 'message_delta', usage: { output_tokens: 5 } },
+    ]);
+    const ai = guard(
+      client,
+      { project: 'ant', dailyCapUSD: 99, provider: 'anthropic' },
+      { now: fixedNow },
+    );
+    const stream = await ai.create({ model: 'claude-sonnet-4-6', stream: true, max_tokens: 50 });
+    await drain(stream as AsyncIterable<unknown>);
+    expect(received[0].stream).toBe(true);
+    expect(received[0].stream_options).toBeUndefined(); // Anthropic에는 주입 금지
   });
 
   it('캡을 넘으면 스트리밍 호출도 호출 전에 차단한다', async () => {

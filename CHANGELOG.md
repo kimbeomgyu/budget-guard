@@ -12,7 +12,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   streamed responses. Chunks pass straight through to the caller; usage is read
   from the final chunk and billed once when the stream finishes. `stream_options:
   { include_usage: true }` is injected automatically. The pre-call cap still
-  applies. (Anthropic/Gemini streaming to follow.)
+  applies.
+- **Anthropic streaming** support via a new optional `provider: 'openai' |
+  'anthropic'` on `GuardOptions`. With `provider: 'anthropic'`, streamed usage is
+  assembled from `message_start` (input + cache) and `message_delta` (cumulative
+  output — replaced, not summed), and the OpenAI-only `stream_options` injection
+  is skipped. (Gemini streaming to follow.)
 
 ## [0.3.1] - 2026-07-02
 

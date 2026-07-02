@@ -37,6 +37,13 @@ export interface GuardOptions {
   /** 캡 초과 시 동작. 기본 'block'(throw) / 'warn'(경고만). */
   onCap?: 'block' | 'warn';
   /**
+   * (선택) 스트리밍 호출에서 provider를 명시. 프로바이더마다 usage 전달 방식이 달라서 필요.
+   * - 'openai' | 미지정: 최종 청크의 usage를 읽고 `stream_options.include_usage`를 자동 주입.
+   * - 'anthropic': message_start(input/캐시)+message_delta(누적 output)에서 usage를 조립하고, stream_options는 주입하지 않음.
+   * 비스트리밍 호출에는 영향 없음(응답 모양으로 자동 인식).
+   */
+  provider?: 'openai' | 'anthropic';
+  /**
    * 지출 저장소. 기본은 프로세스 공유 MemoryStore.
    * 여러 인스턴스가 캡을 공유하려면 redisStore 등을 넘긴다.
    */

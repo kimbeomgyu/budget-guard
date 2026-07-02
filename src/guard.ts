@@ -1,6 +1,7 @@
 import { cost } from './cost.js';
 import type { SpendStore } from './store.js';
 import { MemoryStore } from './store.js';
+import { streamUsageReader } from './stream.js';
 import type { GuardOptions, SpendEvent, Usage } from './types.js';
 import { normalizeUsage } from './usage.js';
 
@@ -99,24 +100,29 @@ export function guard<R extends object>(
         onSpend?.({ project: opts.project, feature, model: args.model, usd, dayTotalUsd });
       };
 
-      // --- 스트리밍: 청크를 그대로 흘려보내며, 최종 청크의 usage로 정산 ---
-      // OpenAI는 stream_options.include_usage를 켜야 마지막 청크에 usage가 실린다.
+      // --- 스트리밍: 청크를 그대로 흘려보내며, provider별 리더로 usage를 모아 정산 ---
       if (args.stream === true) {
-        const streamArgs = {
-          ...args,
-          stream_options: {
-            ...((args.stream_options as Record<string, unknown>) ?? {}),
-            include_usage: true,
-          },
-        };
-        const stream = (await client.create(streamArgs)) as AsyncIterable<{ usage?: unknown }>;
+        // OpenAI(미지정 포함)만 마지막 청크에 usage를 실으려면 include_usage 주입이 필요.
+        // Anthropic 요청에 stream_options를 넣으면 안 되므로 provider가 anthropic이면 주입 안 함.
+        const injectUsageFlag = opts.provider !== 'anthropic';
+        const callArgs = injectUsageFlag
+          ? {
+              ...args,
+              stream_options: {
+                ...((args.stream_options as Record<string, unknown>) ?? {}),
+                include_usage: true,
+              },
+            }
+          : args;
+        const stream = (await client.create(callArgs)) as AsyncIterable<unknown>;
+        const reader = streamUsageReader(opts.provider);
         async function* metered(): AsyncGenerator<unknown> {
-          let raw: unknown;
           for await (const chunk of stream) {
-            if (chunk.usage != null) raw = chunk.usage; // usage는 최종 청크에만 실림
+            reader.observe(chunk);
             yield chunk;
           }
-          if (raw != null) await recordCost(normalizeUsage(raw));
+          const usage = reader.result();
+          if (usage != null) await recordCost(usage);
         }
         return metered() as unknown as R;
       }
