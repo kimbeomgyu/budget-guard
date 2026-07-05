@@ -252,6 +252,29 @@ const ai = guard(openai.chat.completions, {
 Keep the callback light — it runs synchronously just before the response is
 returned. Push heavy work (network, disk) onto a queue.
 
+## Monthly caps & time zones
+
+Cap per month instead of per day, and reset on your billing time zone's calendar
+(not UTC):
+
+```ts
+const ai = guard(openai.chat.completions, {
+  project: 'my-app',
+  dailyCapUSD: 500,          // the cap for the period
+  period: 'monthly',         // 'daily' (default) | 'monthly'
+  timezone: 'America/New_York', // optional IANA zone; default UTC
+});
+```
+
+An invalid `timezone` throws at construction. With a `redisStore`, set
+`ttlSeconds` to cover a month (e.g. `60 * 60 * 24 * 40`) so monthly counters don't
+expire early. To read the current period's total, use `periodKey`:
+
+```ts
+import { spentTotal, periodKey } from 'budget-guard';
+await spentTotal('my-app', store, periodKey(new Date(), 'monthly', 'America/New_York'));
+```
+
 ## Options
 
 ```ts

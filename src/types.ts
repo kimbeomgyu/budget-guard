@@ -32,8 +32,15 @@ export interface SpendEvent {
 export interface GuardOptions {
   /** 비용을 묶는 단위(예: 'agent-worker'). */
   project: string;
-  /** 하루 하드 캡(USD). 초과하면 호출을 막는다. */
+  /** 하드 캡(USD). 초과하면 호출을 막는다. (period='monthly'면 월간 한도.) */
   dailyCapUSD: number;
+  /** 캡 리셋 주기. 기본 'daily'(매일) / 'monthly'(매월). */
+  period?: 'daily' | 'monthly';
+  /**
+   * (선택) 캡 리셋 기준 IANA 타임존(예: 'America/New_York'). 기본 UTC.
+   * 잘못된 값이면 guard() 생성 시 RangeError. (redisStore + monthly면 ttlSeconds를 한 달 이상으로.)
+   */
+  timezone?: string;
   /** 캡 초과 시 동작. 기본 'block'(throw) / 'warn'(경고만). */
   onCap?: 'block' | 'warn';
   /**
