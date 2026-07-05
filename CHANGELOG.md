@@ -8,6 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **LangChain.js adapter** (`budget-guard/langchain`) — `BudgetGuardHandler`, a
+  `BaseCallbackHandler` that enforces the hard cap before each call
+  (`handleLLMStart` / `handleChatModelStart`, with `raiseError` so it actually
+  aborts) and meters cost on `handleLLMEnd` (prefers `usage_metadata`, falls back
+  to `llmOutput.tokenUsage`). `@langchain/core` is an optional peer dependency;
+  the main entry stays dependency-free. Also exports `spentTotal(project, store?,
+  day?)`.
 - Typed per-provider helpers `guardOpenAI` / `guardAnthropic` / `guardGemini` —
   thin wrappers over `guard()` that preset `provider`, so streaming is metered
   correctly for that provider without passing the option (removes the
