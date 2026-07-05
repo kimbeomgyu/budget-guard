@@ -141,6 +141,26 @@ for await (const event of stream) { /* ... */ }
 For **Gemini** streaming, set `provider: 'gemini'` — usage comes from each chunk's
 `usageMetadata` (the last one carries the totals).
 
+## Vercel AI SDK
+
+Using the [AI SDK](https://sdk.vercel.dev)? Wrap any model with the middleware —
+no client to guard, the cap and per-feature metering apply automatically:
+
+```ts
+import { wrapLanguageModel, generateText } from 'ai';
+import { openai } from '@ai-sdk/openai';
+import { budgetGuardMiddleware } from 'budget-guard';
+
+const model = wrapLanguageModel({
+  model: openai('gpt-4o'),
+  middleware: budgetGuardMiddleware({ project: 'my-app', dailyCapUSD: 50, feature: 'chat' }),
+});
+
+await generateText({ model, prompt: 'hi' }); // over cap → throws before the model call
+```
+
+Meters `generateText` (non-streaming). `streamText` metering is coming next.
+
 ## See every call's cost (observability)
 
 A hard cap stops the bleeding; `onSpend` lets you *watch* it. It fires on every

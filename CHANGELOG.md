@@ -23,6 +23,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   what happens when a response/stream has no recognizable usage. `'throw'` keeps
   the current behavior (never silently under-counts); `'zero'` logs a warning and
   bills $0 so the call still succeeds. Applies to both streaming and non-streaming.
+- **Vercel AI SDK adapter** — `budgetGuardMiddleware(opts)` returns a middleware for
+  `wrapLanguageModel`, applying the hard cap (before the model call) and per-feature
+  metering to any AI SDK model. Meters `generateText` (non-streaming);
+  `streamText` support to follow. Zero new dependencies (structurally typed).
 
 ## [0.3.1] - 2026-07-02
 
