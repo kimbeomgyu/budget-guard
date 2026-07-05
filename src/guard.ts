@@ -180,6 +180,15 @@ export function guardGemini<R extends object>(client: ProviderClient<R>, opts: G
   return guard(client, { ...opts, provider: 'gemini' });
 }
 
+/** 특정 프로젝트의 그날 누적 총지출(USD). 캡 사전검사 등에 쓴다. */
+export async function spentTotal(
+  project: string,
+  store: SpendStore = defaultStore,
+  day: string = dayKey(new Date()),
+): Promise<number> {
+  return store.get(`${project}${SEP}${TOTAL}${SEP}${day}`);
+}
+
 /** 특정 프로젝트의 그날 기능별 비용 내역을 돌려준다. (기본 저장소 또는 넘긴 store 기준) */
 export async function spendReport(
   project: string,

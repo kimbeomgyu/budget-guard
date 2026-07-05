@@ -10,6 +10,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./langchain": {
+      "types": "./dist/langchain.d.ts",
+      "import": "./dist/langchain.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -44,8 +48,17 @@
   "homepage": "https://github.com/kimbeomgyu/budget-guard#readme",
   "author": "kimbeomgyu",
   "license": "MIT",
+  "peerDependencies": {
+    "@langchain/core": ">=0.3.0"
+  },
+  "peerDependenciesMeta": {
+    "@langchain/core": {
+      "optional": true
+    }
+  },
   "devDependencies": {
     "@biomejs/biome": "2.5.2",
+    "@langchain/core": "^1.2.1",
     "typescript": "^6.0.3",
     "vitest": "^4.1.9"
   }

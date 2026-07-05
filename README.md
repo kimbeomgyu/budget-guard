@@ -105,6 +105,22 @@ const ai = guard(openai.chat.completions, {
 });
 ```
 
+## LangChain.js
+
+Attach the callback handler to any LangChain model or chain — the cap is enforced
+before each call, and cost is metered from the response:
+
+```ts
+import { BudgetGuardHandler } from 'budget-guard/langchain';
+
+const handler = new BudgetGuardHandler({ project: 'my-app', dailyCapUSD: 50, model: 'gpt-4o' });
+await model.invoke(input, { callbacks: [handler] }); // over cap → throws before the call
+```
+
+Reads usage from `usage_metadata` (falling back to `llmOutput.tokenUsage`). Pass
+`model` for reliable pricing (it's also auto-detected from the response when
+present). Needs `@langchain/core` (an optional peer dependency).
+
 ## Typed per-provider helpers
 
 `guardOpenAI` / `guardAnthropic` / `guardGemini` are thin wrappers that set

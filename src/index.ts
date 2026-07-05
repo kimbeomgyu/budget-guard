@@ -7,6 +7,7 @@ export {
   guardGemini,
   guardOpenAI,
   spendReport,
+  spentTotal,
 } from './guard.js';
 export { PRICES } from './pricing.js';
 export type { RedisLike, SpendStore } from './store.js';
