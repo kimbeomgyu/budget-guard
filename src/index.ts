@@ -9,6 +9,7 @@ export {
   spendReport,
   spentTotal,
 } from './guard.js';
+export { guardLlamaIndex } from './llamaindex.js';
 export { PRICES } from './pricing.js';
 export type { RedisLike, SpendStore } from './store.js';
 export { MemoryStore, redisStore } from './store.js';

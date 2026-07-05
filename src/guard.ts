@@ -189,6 +189,21 @@ export async function spentTotal(
   return store.get(`${project}${SEP}${TOTAL}${SEP}${day}`);
 }
 
+/**
+ * 하드 캡을 지금 강제(호출을 감쌀 수 없는 어댑터/콜백용). 이미 넘겼으면 block이면 throw, warn이면 경고.
+ * guard()의 캡 검사와 동일 규약. (계량은 별도.)
+ */
+export async function enforceDailyCap(opts: GuardOptions): Promise<void> {
+  const store = opts.store ?? defaultStore;
+  const spent = await spentTotal(opts.project, store);
+  if (spent >= opts.dailyCapUSD) {
+    opts.onExceeded?.({ project: opts.project, spentUsd: spent, capUsd: opts.dailyCapUSD });
+    const err = new BudgetExceededError(opts.project, spent, opts.dailyCapUSD);
+    if ((opts.onCap ?? 'block') === 'block') throw err;
+    console.warn(err.message);
+  }
+}
+
 /** 특정 프로젝트의 그날 기능별 비용 내역을 돌려준다. (기본 저장소 또는 넘긴 store 기준) */
 export async function spendReport(
   project: string,

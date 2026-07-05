@@ -105,6 +105,21 @@ const ai = guard(openai.chat.completions, {
 });
 ```
 
+## LlamaIndex.TS
+
+Wrap any LlamaIndex LLM — the cap applies before each call and non-streaming
+`chat()` is metered from the response:
+
+```ts
+import { guardLlamaIndex } from 'budget-guard';
+
+const llm = guardLlamaIndex(openai({ model: 'gpt-4o' }), { project: 'my-app', dailyCapUSD: 50 });
+Settings.llm = llm; // or call llm.chat(...) directly
+```
+
+Usage is read from `response.raw` (works across providers). Streaming `chat()`
+still enforces the cap; streaming metering is coming next. Zero new dependencies.
+
 ## LangChain.js
 
 Attach the callback handler to any LangChain model or chain — the cap is enforced
