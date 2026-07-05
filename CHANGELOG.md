@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Mastra support** (docs) — Mastra agents run on Vercel AI SDK models, so the
+  `budgetGuardMiddleware` covers them with no Mastra-specific code; documented the
+  `wrapLanguageModel` → `Agent({ model })` pattern (verified against
+  `@mastra/ai-sdk`).
 - **LlamaIndex.TS adapter** — `guardLlamaIndex(llm, opts)` wraps any LlamaIndex LLM
   (structural typing, zero new deps): the hard cap applies before each call and
   non-streaming `chat()` is metered from `response.raw` (usage extracted across
