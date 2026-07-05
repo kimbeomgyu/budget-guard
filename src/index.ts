@@ -6,6 +6,7 @@ export {
   guardAnthropic,
   guardGemini,
   guardOpenAI,
+  periodKey,
   spendReport,
   spentTotal,
 } from './guard.js';

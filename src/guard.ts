@@ -45,6 +45,30 @@ function dayKey(d: Date): string {
   return d.toISOString().slice(0, 10);
 }
 
+/**
+ * 캡 리셋 주기 키. daily → 'YYYY-MM-DD', monthly → 'YYYY-MM'.
+ * timezone(IANA)을 주면 그 지역 달력 기준(안 주면 UTC — 기존 동작과 동일).
+ * 잘못된 timezone은 Intl이 RangeError를 던진다.
+ */
+export function periodKey(
+  date: Date,
+  period: 'daily' | 'monthly' = 'daily',
+  timezone?: string,
+): string {
+  if (!timezone) {
+    const iso = date.toISOString(); // UTC
+    return period === 'monthly' ? iso.slice(0, 7) : iso.slice(0, 10);
+  }
+  // en-CA는 ISO형(YYYY-MM-DD)으로 포맷된다.
+  const local = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+  return period === 'monthly' ? local.slice(0, 7) : local;
+}
+
 type CreateArgs = { model: string; [k: string]: unknown };
 
 /**
@@ -63,6 +87,10 @@ export function guard<R extends object>(
   const now = internals.now ?? (() => new Date());
   const onCap = opts.onCap ?? 'block';
   const onMissingUsage = opts.onMissingUsage ?? 'throw';
+  const period = opts.period ?? 'daily';
+  const timezone = opts.timezone;
+  // 잘못된 timezone이면 여기서 즉시 RangeError.
+  if (timezone) periodKey(now(), period, timezone);
   const store: SpendStore = opts.store ?? defaultStore;
   const onSpend = opts.onSpend ?? internals.onSpend;
   const extract =
@@ -70,7 +98,7 @@ export function guard<R extends object>(
 
   return {
     async create(args: CreateArgs, tags: { feature?: string } = {}): Promise<R> {
-      const day = dayKey(now());
+      const day = periodKey(now(), period, timezone);
       const feature = tags.feature ?? 'default';
       const totalKey = `${opts.project}${SEP}${TOTAL}${SEP}${day}`;
       const spentToday = await store.get(totalKey);
@@ -195,7 +223,8 @@ export async function spentTotal(
  */
 export async function enforceDailyCap(opts: GuardOptions): Promise<void> {
   const store = opts.store ?? defaultStore;
-  const spent = await spentTotal(opts.project, store);
+  const day = periodKey(new Date(), opts.period ?? 'daily', opts.timezone);
+  const spent = await spentTotal(opts.project, store, day);
   if (spent >= opts.dailyCapUSD) {
     opts.onExceeded?.({ project: opts.project, spentUsd: spent, capUsd: opts.dailyCapUSD });
     const err = new BudgetExceededError(opts.project, spent, opts.dailyCapUSD);

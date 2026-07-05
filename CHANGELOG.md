@@ -6,6 +6,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **Monthly caps & IANA time zones** — `period: 'daily' | 'monthly'` and an optional
+  `timezone` on `GuardOptions`. The cap resets on the configured zone's calendar day
+  or month (default daily/UTC — unchanged). Invalid `timezone` throws at
+  construction. New exported `periodKey(date, period?, timezone?)` helper to compute
+  the current period's key for reads. (With `redisStore` + monthly, raise
+  `ttlSeconds` to cover a month.)
+
 ## [0.5.0] - 2026-07-05
 
 ### Added
