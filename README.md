@@ -159,7 +159,10 @@ const model = wrapLanguageModel({
 await generateText({ model, prompt: 'hi' }); // over cap → throws before the model call
 ```
 
-Meters `generateText` (non-streaming). `streamText` metering is coming next.
+Meters both `generateText` and `streamText` (usage read from the stream's `finish`
+part). Over-cap `streamText` blocks before the model call; the error arrives on the
+SDK's standard error channel (`onError`, or `await result.text`) — `textStream`
+swallows stream errors by default.
 
 ## See every call's cost (observability)
 
