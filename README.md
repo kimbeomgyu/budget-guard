@@ -105,6 +105,19 @@ const ai = guard(openai.chat.completions, {
 });
 ```
 
+## Typed per-provider helpers
+
+`guardOpenAI` / `guardAnthropic` / `guardGemini` are thin wrappers that set
+`provider` for you — so streaming is metered correctly without remembering the
+option:
+
+```ts
+import { guardAnthropic } from 'budget-guard';
+
+const ai = guardAnthropic(anthropic.messages, { project: 'my-app', dailyCapUSD: 50 });
+// streaming already knows it's Anthropic — no `provider` to forget
+```
+
 ## Streaming
 
 Streaming calls are metered too — just pass `stream: true` as usual. budget-guard
