@@ -1,7 +1,7 @@
 import { cost } from './cost.js';
 import type { SpendStore } from './store.js';
 import { MemoryStore } from './store.js';
-import { streamUsageReader } from './stream.js';
+import { type StreamUsageReader, streamUsageReader } from './stream.js';
 import type { GuardOptions, SpendEvent, Usage } from './types.js';
 import { normalizeUsage, UnknownUsageShapeError } from './usage.js';
 
@@ -15,6 +15,8 @@ interface GuardInternals<R> {
   onSpend?: (e: SpendEvent) => void;
   /** 제공자 응답에서 토큰 usage를 직접 뽑는 추출기 (자동 인식 안 될 때). */
   usageOf?: (res: R) => Usage;
+  /** 스트리밍 usage 리더를 직접 주입 (어댑터용). 주면 provider 자동선택·주입을 건너뛴다. */
+  streamReader?: StreamUsageReader;
 }
 
 /** 캡 초과로 호출이 차단될 때 던지는 에러. */
@@ -123,9 +125,12 @@ export function guard<R extends object>(
 
       // --- 스트리밍: 청크를 그대로 흘려보내며, provider별 리더로 usage를 모아 정산 ---
       if (args.stream === true) {
+        // 커스텀 리더(어댑터)면 그걸 쓰고 provider 자동선택·주입을 건너뛴다.
+        const reader = internals.streamReader ?? streamUsageReader(opts.provider);
         // OpenAI(미지정 포함)만 마지막 청크에 usage를 실으려면 include_usage 주입이 필요.
-        // Anthropic/Gemini 요청엔 stream_options를 넣으면 안 되므로 openai/미지정일 때만 주입.
-        const injectUsageFlag = opts.provider === undefined || opts.provider === 'openai';
+        // Anthropic/Gemini/커스텀 리더 요청엔 stream_options를 넣으면 안 됨.
+        const injectUsageFlag =
+          !internals.streamReader && (opts.provider === undefined || opts.provider === 'openai');
         const callArgs = injectUsageFlag
           ? {
               ...args,
@@ -136,7 +141,6 @@ export function guard<R extends object>(
             }
           : args;
         const stream = (await client.create(callArgs)) as AsyncIterable<unknown>;
-        const reader = streamUsageReader(opts.provider);
         async function* metered(): AsyncGenerator<unknown> {
           for await (const chunk of stream) {
             reader.observe(chunk);
