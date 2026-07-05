@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **LlamaIndex.TS adapter** — `guardLlamaIndex(llm, opts)` wraps any LlamaIndex LLM
+  (structural typing, zero new deps): the hard cap applies before each call and
+  non-streaming `chat()` is metered from `response.raw` (usage extracted across
+  provider shapes). Streaming `chat()` still enforces the cap (metering to follow).
+  Also exports `enforceDailyCap()` internally used by adapters.
 - **LangChain.js adapter** (`budget-guard/langchain`) — `BudgetGuardHandler`, a
   `BaseCallbackHandler` that enforces the hard cap before each call
   (`handleLLMStart` / `handleChatModelStart`, with `raiseError` so it actually
