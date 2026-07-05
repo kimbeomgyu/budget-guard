@@ -208,6 +208,27 @@ part). Over-cap `streamText` blocks before the model call; the error arrives on 
 SDK's standard error channel (`onError`, or `await result.text`) — `textStream`
 swallows stream errors by default.
 
+## Mastra
+
+Mastra agents run on Vercel AI SDK models, so the middleware above already covers
+them — wrap the model before handing it to your agent, no Mastra-specific code:
+
+```ts
+import { wrapLanguageModel } from 'ai';
+import { Agent } from '@mastra/core/agent';
+import { budgetGuardMiddleware } from 'budget-guard';
+
+const model = wrapLanguageModel({
+  model: openai('gpt-4o'),
+  middleware: budgetGuardMiddleware({ project: 'my-app', dailyCapUSD: 50 }),
+});
+
+const agent = new Agent({ id: 'support', model, instructions: '…' });
+// (or withMastra(model, { … }) if you use @mastra/ai-sdk directly)
+```
+
+The cap and metering apply to every model call the agent makes.
+
 ## See every call's cost (observability)
 
 A hard cap stops the bleeding; `onSpend` lets you *watch* it. It fires on every
