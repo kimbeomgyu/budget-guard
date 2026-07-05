@@ -159,6 +159,27 @@ export function guard<R extends object>(
   };
 }
 
+type ProviderClient<R> = { create(args: CreateArgs): Promise<R> };
+type GuardOpts = Omit<GuardOptions, 'provider'>;
+
+// provider만 고정해 스트리밍이 알아서 맞게 동작하게 하는 얇은 래퍼들.
+// (Anthropic/Gemini 스트리밍은 provider가 필요한데, 이걸 쓰면 잊을 일이 없다.)
+
+/** OpenAI 클라이언트(`openai.chat.completions`)용 guard. provider='openai'. */
+export function guardOpenAI<R extends object>(client: ProviderClient<R>, opts: GuardOpts) {
+  return guard(client, { ...opts, provider: 'openai' });
+}
+
+/** Anthropic 클라이언트(`anthropic.messages`)용 guard. provider='anthropic'(스트리밍 정산 자동). */
+export function guardAnthropic<R extends object>(client: ProviderClient<R>, opts: GuardOpts) {
+  return guard(client, { ...opts, provider: 'anthropic' });
+}
+
+/** Google Gemini 클라이언트용 guard. provider='gemini'(스트리밍 정산 자동). */
+export function guardGemini<R extends object>(client: ProviderClient<R>, opts: GuardOpts) {
+  return guard(client, { ...opts, provider: 'gemini' });
+}
+
 /** 특정 프로젝트의 그날 기능별 비용 내역을 돌려준다. (기본 저장소 또는 넘긴 store 기준) */
 export async function spendReport(
   project: string,
