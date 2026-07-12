@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Reasoning-token billing convention** — providers disagree on whether reasoning
+  tokens are counted inside the output-token figure. New `reasoningInOutput` flag on
+  `PRICES` rows (default `true`): for xAI Grok (excluded from `completion_tokens`)
+  and Gemini (`thoughtsTokenCount` sits outside `candidatesTokenCount`) it is `false`,
+  and `cost()` now bills those reasoning tokens at the output rate instead of
+  silently under-charging. OpenAI/Anthropic are unchanged (already included — no
+  double-count).
+
 ### Added
 
 - **Monthly caps & IANA time zones** — `period: 'daily' | 'monthly'` and an optional

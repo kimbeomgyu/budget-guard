@@ -37,4 +37,34 @@ describe('cost()', () => {
       cost('anthropic.claude-sonnet-4', { input: 1000, output: 0, cachedInput: 500 }),
     ).toBeCloseTo(0.003, 8);
   });
+
+  describe('reasoning-token 규약 (reasoningInOutput)', () => {
+    it('xAI Grok: reasoning이 completion_tokens에서 제외 → output 요율로 가산 (100+400=500 과금)', () => {
+      // grok-4.3 out 0.0025/1K → 500 out-class tokens = 0.00125
+      expect(cost('grok-4.3', { input: 0, output: 100, reasoning: 400 })).toBeCloseTo(
+        (500 / 1000) * 0.0025,
+        8,
+      );
+    });
+
+    it('OpenAI: reasoning이 이미 completion_tokens에 포함 → 이중과금하지 않는다 (500 그대로)', () => {
+      // gpt-4.1 out 0.008/1K, reasoning 400은 output 500 안에 이미 포함된 카운트
+      expect(cost('gpt-4.1', { input: 0, output: 500, reasoning: 400 })).toBeCloseTo(
+        (500 / 1000) * 0.008,
+        8,
+      );
+    });
+
+    it('Gemini: thoughtsTokenCount는 candidatesTokenCount 밖 → output 요율로 가산', () => {
+      // gemini-2.5-pro out 0.01/1K → (200+300)/1000*0.01
+      expect(cost('gemini-2.5-pro', { input: 0, output: 200, reasoning: 300 })).toBeCloseTo(
+        (500 / 1000) * 0.01,
+        8,
+      );
+    });
+
+    it('reasoning이 없으면 플래그와 무관하게 동일', () => {
+      expect(cost('grok-4.3', { input: 1000, output: 1000 })).toBeCloseTo(0.00125 + 0.0025, 8);
+    });
+  });
 });

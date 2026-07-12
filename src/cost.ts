@@ -14,7 +14,11 @@ export function cost(model: string, usage: Usage): number {
   const cached = usage.cachedInput ?? 0;
   const uncachedInput = Math.max(0, usage.input - cached);
   const cachedRate = p.cachedIn ?? p.in;
+  // reasoningInOutput=false 제공자(xAI/Gemini)는 output 카운트에 reasoning이 빠져 있어 가산.
+  const extraReasoning = p.reasoningInOutput === false ? (usage.reasoning ?? 0) : 0;
   return (
-    (uncachedInput / 1000) * p.in + (cached / 1000) * cachedRate + (usage.output / 1000) * p.out
+    (uncachedInput / 1000) * p.in +
+    (cached / 1000) * cachedRate +
+    ((usage.output + extraReasoning) / 1000) * p.out
   );
 }
