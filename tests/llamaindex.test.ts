@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { __resetDefaultStore, BudgetExceededError, spendReport } from '../src/guard';
 import { guardLlamaIndex } from '../src/llamaindex';
 import { MemoryStore } from '../src/store';
@@ -52,14 +52,75 @@ describe('guardLlamaIndex (LlamaIndex.TS)', () => {
     expect(llm.calls.length).toBe(before); // 하위 chat 미호출
   });
 
-  it('스트리밍: 캡만 검사하고 통과한다(계량 안 함)', async () => {
+  // 스트리밍용 가짜: 지정한 raw 시퀀스를 청크로 흘린다
+  function fakeStreamLLM(raws: Array<object | null>) {
+    return {
+      metadata: { model: 'gpt-4o' },
+      async chat(_params: { stream?: boolean }) {
+        return (async function* () {
+          for (const raw of raws) yield { delta: 'x', raw };
+        })();
+      },
+    };
+  }
+
+  it('스트리밍(OpenAI raw): 최종 청크 usage로 1회 정산, 청크는 그대로 통과', async () => {
     const s = new MemoryStore();
-    const g = guardLlamaIndex(fakeLLM(openaiRaw), { project: 'st', dailyCapUSD: 99, store: s });
+    const g = guardLlamaIndex(fakeStreamLLM([{ usage: null }, { usage: null }, openaiRaw]), {
+      project: 'sto',
+      dailyCapUSD: 99,
+      store: s,
+      feature: 'c',
+    });
     const stream = (await g.chat({ messages: [], stream: true })) as AsyncIterable<unknown>;
     const chunks: unknown[] = [];
     for await (const c of stream) chunks.push(c);
-    expect(chunks.length).toBeGreaterThan(0);
-    expect(await spendReport('st', undefined, s)).toEqual({}); // 계량 안 함
+    expect(chunks).toHaveLength(3);
+    expect((await spendReport('sto', undefined, s)).c).toBeCloseTo(0.0125, 6);
+  });
+
+  it('스트리밍(Anthropic raw 이벤트): start+delta 조립, 누적 output은 교체', async () => {
+    const s = new MemoryStore();
+    const g = guardLlamaIndex(
+      fakeStreamLLM([
+        { type: 'message_start', message: { usage: { input_tokens: 1000, output_tokens: 1 } } },
+        { type: 'message_delta', usage: { output_tokens: 1000 } },
+      ]),
+      { project: 'sta', dailyCapUSD: 99, store: s, feature: 'c' },
+    );
+    for await (const _c of (await g.chat({ stream: true })) as AsyncIterable<unknown>) void _c;
+    // 1000 in + 1000 out (1+1000 아님) = $0.0125
+    expect((await spendReport('sta', undefined, s)).c).toBeCloseTo(0.0125, 6);
+  });
+
+  it('스트리밍(Gemini raw): 마지막 usageMetadata 누적본으로 정산', async () => {
+    const s = new MemoryStore();
+    const g = guardLlamaIndex(
+      fakeStreamLLM([
+        { usageMetadata: { promptTokenCount: 1000, candidatesTokenCount: 10 } },
+        { usageMetadata: { promptTokenCount: 1000, candidatesTokenCount: 1000 } },
+      ]),
+      { project: 'stg', dailyCapUSD: 99, store: s, feature: 'c' },
+    );
+    for await (const _c of (await g.chat({ stream: true })) as AsyncIterable<unknown>) void _c;
+    expect((await spendReport('stg', undefined, s)).c).toBeCloseTo(0.0125, 6);
+  });
+
+  it('스트리밍: usage가 어디에도 없으면 경고만 찍고 계량 없이 통과한다', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const s = new MemoryStore();
+    const g = guardLlamaIndex(fakeStreamLLM([{}, null]), {
+      project: 'stn',
+      dailyCapUSD: 99,
+      store: s,
+    });
+    const chunks: unknown[] = [];
+    for await (const c of (await g.chat({ stream: true })) as AsyncIterable<unknown>)
+      chunks.push(c);
+    expect(chunks).toHaveLength(2); // 통과는 그대로
+    expect(await spendReport('stn', undefined, s)).toEqual({});
+    expect(warn).toHaveBeenCalledOnce();
+    warn.mockRestore();
   });
 
   it('스트리밍: 캡을 넘으면 throw한다', async () => {
