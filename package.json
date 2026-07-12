@@ -18,6 +18,10 @@
       "types": "./dist/testing.d.ts",
       "import": "./dist/testing.js"
     },
+    "./file": {
+      "types": "./dist/file.d.ts",
+      "import": "./dist/file.js"
+    },
     "./package.json": "./package.json"
   },
   "files": [
@@ -63,6 +67,7 @@
   "devDependencies": {
     "@biomejs/biome": "2.5.3",
     "@langchain/core": "^1.2.1",
+    "@types/node": "^26.1.1",
     "typescript": "^6.0.3",
     "vitest": "^4.1.9"
   }
