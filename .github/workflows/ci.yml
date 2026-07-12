@@ -18,6 +18,19 @@ jobs:
       fail-fast: false
       matrix:
         node-version: [20, 22, 24]
+    # 실제 Redis — redisStore의 Lua(addIfUnder) 원자성을 목이 아니라 실서버로 검증
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      REDIS_URL: redis://localhost:6379
     steps:
       - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
