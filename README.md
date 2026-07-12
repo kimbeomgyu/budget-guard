@@ -140,8 +140,11 @@ const llm = guardLlamaIndex(openai({ model: 'gpt-4o' }), { project: 'my-app', da
 Settings.llm = llm; // or call llm.chat(...) directly
 ```
 
-Usage is read from `response.raw` (works across providers). Streaming `chat()`
-still enforces the cap; streaming metering is coming next. Zero new dependencies.
+Usage is read from `response.raw` (works across providers). Streaming `chat()` is
+metered too — each chunk's `raw` is watched for OpenAI / Anthropic / Gemini usage
+shapes and the spend is settled when the stream ends. If the provider doesn't put
+usage in the stream, you get a warning instead of a silent zero. Zero new
+dependencies.
 
 ## LangChain.js
 

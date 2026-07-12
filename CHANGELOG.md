@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **LlamaIndex streaming is now metered** — `guardLlamaIndex` used to enforce the
+  cap on streaming `chat()` but let the spend go uncounted (a metering hole for
+  streaming-heavy apps). Each chunk's `raw` is now observed with all three
+  provider stream readers (OpenAI / Anthropic / Gemini) and the stream settles on
+  completion. When no usage appears in the stream at all, budget-guard logs a
+  warning instead of throwing — the stream was already consumed, and breaking it
+  after the fact would be worse.
+
 ### Added
 
 - **`budget-guard/file` — file-backed spend store** — closes a real gap for cron
