@@ -1,4 +1,6 @@
 export { cost } from './cost.js';
+export type { EstimatorOptions } from './estimator.js';
+export { estimator, NEW_TOKENIZER_MULTIPLIER, tokenizerMultiplier } from './estimator.js';
 export type { SpendEvent } from './guard.js';
 export {
   BudgetExceededError,
