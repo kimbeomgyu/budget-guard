@@ -10,6 +10,27 @@ const NEW_TOKENIZER = /^claude-(fable|mythos|sonnet-[5-9]|haiku-[5-9]|opus-([5-9
 // 토크나이저 세대를 아는 모델 계열 — 보정 불필요(1×).
 const KNOWN_FAMILY = /^(gpt-|o[0-9]|chatgpt-|claude-|gemini-|grok-|deepseek-|mistral)/;
 
+// 툴을 켰을 때 제공자가 프롬프트에 얹는 고정 오버헤드(토큰). 스키마 자체 토큰은 별도 가산.
+// Anthropic은 tool_choice:auto 기준 ~294가 문서화된 값; 나머지는 스키마 토큰이 지배적이라 0.
+const TOOL_BASE: Record<string, number> = {
+  anthropic: 294,
+  openai: 0,
+  gemini: 0,
+  xai: 0,
+  deepseek: 0,
+  mistral: 0,
+};
+
+function familyOf(model: string): string | null {
+  if (/^claude-/.test(model)) return 'anthropic';
+  if (/^(gpt-|o[0-9]|chatgpt-)/.test(model)) return 'openai';
+  if (/^gemini-/.test(model)) return 'gemini';
+  if (/^grok-/.test(model)) return 'xai';
+  if (/^deepseek-/.test(model)) return 'deepseek';
+  if (/^mistral/.test(model)) return 'mistral';
+  return null;
+}
+
 export interface EstimatorOptions {
   /**
    * (선택) 정밀 토크나이저 주입 — 예: `gpt-tokenizer`의 `countTokens`.
@@ -62,7 +83,17 @@ export function estimator(opts: EstimatorOptions = {}) {
   // ponytail: chars/4는 영어 근사 — 정밀도가 필요하면 countTokens로 실제 토크나이저 주입.
   const count = opts.countTokens ?? ((text: string) => Math.ceil(text.length / 4));
   return (args: { model: string; [k: string]: unknown }): Usage => {
-    const input = Math.ceil(count(textOf(args)) * tokenizerMultiplier(args.model));
+    const mult = tokenizerMultiplier(args.model);
+    let input = Math.ceil(count(textOf(args)) * mult);
+    // 툴 정의는 프롬프트로 직렬화돼 입력 토큰을 먹는다: 스키마 토큰 + 제공자 고정 오버헤드.
+    if (Array.isArray(args.tools) && args.tools.length > 0) {
+      const fam = familyOf(args.model);
+      if (fam == null)
+        throw new Error(
+          `budget-guard estimator: cannot estimate tool overhead for unknown model "${args.model}" — provide your own estimateUsage`,
+        );
+      input += Math.ceil(count(JSON.stringify(args.tools)) * mult) + TOOL_BASE[fam];
+    }
     const output =
       num(args.max_tokens) ?? num(args.maxOutputTokens) ?? num(args.max_completion_tokens) ?? 0;
     return { input, output };

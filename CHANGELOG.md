@@ -28,6 +28,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Haiku 5+, Fable, Mythos ≈ 30% more tokens for the same text); unknown model
   families get the conservative 1.3× plus a warning. Combined with the new atomic
   reservation, this makes true pre-call cap blocking a one-liner.
+  With `tools` in the call, the estimate also adds the serialized tool-schema
+  tokens plus the provider's fixed overhead (Anthropic ≈ 294 with
+  `tool_choice: auto`; others schema-only); an unknown model family with `tools`
+  throws instead of guessing.
 
 - **Retry-storm detection** — the most expensive LLM bug class is a retry loop
   quietly re-burning money. New `retryStormThreshold` + `onRetryStorm` on

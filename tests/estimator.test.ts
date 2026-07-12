@@ -59,6 +59,48 @@ describe('estimator()', () => {
     expect(est({ model: 'gpt-4o', prompt: TEXT }).input).toBe(42);
   });
 
+  describe('툴 스키마 오버헤드', () => {
+    const TOOLS = [
+      {
+        name: 'get_weather',
+        description: 'Get current weather',
+        input_schema: { type: 'object', properties: { city: { type: 'string' } } },
+      },
+    ];
+
+    it('tools가 있으면 스키마 토큰 + 제공자 고정 오버헤드를 가산한다', () => {
+      const est = estimator();
+      const without = est({ model: 'gpt-4o', prompt: TEXT }).input;
+      const withTools = est({ model: 'gpt-4o', prompt: TEXT, tools: TOOLS }).input;
+      const schemaTokens = Math.ceil(JSON.stringify(TOOLS).length / 4);
+      expect(withTools - without).toBe(schemaTokens); // openai: base 0 + 스키마
+    });
+
+    it('Anthropic은 고정 오버헤드 ~294를 추가로 얹는다', () => {
+      const est = estimator();
+      // claude-haiku-4-5: 구세대(mult 1) → openai와 순수 base 차이만
+      const gpt = est({ model: 'gpt-4o', prompt: TEXT, tools: TOOLS }).input;
+      const claude = est({ model: 'claude-haiku-4-5', prompt: TEXT, tools: TOOLS }).input;
+      expect(claude - gpt).toBe(294);
+    });
+
+    it('tools가 없으면 아무것도 가산하지 않는다 (빈 배열 포함)', () => {
+      const est = estimator();
+      expect(est({ model: 'gpt-4o', prompt: TEXT, tools: [] }).input).toBe(
+        est({ model: 'gpt-4o', prompt: TEXT }).input,
+      );
+    });
+
+    it('미지 모델 계열 + tools면 throw한다', () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const est = estimator();
+      expect(() => est({ model: 'totally-new-llm', prompt: TEXT, tools: TOOLS })).toThrow(
+        /tool overhead/,
+      );
+      warn.mockRestore();
+    });
+  });
+
   it('guard.estimateUsage에 꽂으면 캡 넘길 호출을 사전 차단한다', async () => {
     const store = new MemoryStore();
     let called = 0;
