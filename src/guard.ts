@@ -83,7 +83,11 @@ export function guard<R extends object>(
   client: { create(args: CreateArgs): Promise<R> },
   opts: GuardOptions,
   internals: GuardInternals<R> = {},
-): { create(args: CreateArgs, tags?: { feature?: string }): Promise<R> } {
+): {
+  create(args: CreateArgs, tags?: { feature?: string }): Promise<R>;
+  /** 이 guard 인스턴스의 재시도 통계 (프로세스 로컬). */
+  retryStats(): { totalRetries: number; retryStorms: number };
+} {
   const now = internals.now ?? (() => new Date());
   const onCap = opts.onCap ?? 'block';
   const onMissingUsage = opts.onMissingUsage ?? 'throw';
@@ -96,7 +100,30 @@ export function guard<R extends object>(
   const extract =
     internals.usageOf ?? ((res: R) => normalizeUsage((res as { usage?: unknown }).usage));
 
+  // 리트라이 스톰 감지: (feature|model)별 연속 실패 스트릭. 성공 시 리셋.
+  // 제공자로 실제 나간 호출의 실패만 센다(캡 차단은 제외). 프로세스 로컬 신호.
+  const failStreak = new Map<string, number>();
+  let totalRetries = 0;
+  let retryStorms = 0;
+  const noteFailure = (feature: string, model: string): void => {
+    const key = `${feature}${SEP}${model}`;
+    const n = (failStreak.get(key) ?? 0) + 1;
+    failStreak.set(key, n);
+    totalRetries++;
+    if (opts.retryStormThreshold && n === opts.retryStormThreshold) {
+      retryStorms++;
+      opts.onRetryStorm?.({ project: opts.project, feature, model, consecutiveFailures: n });
+    }
+  };
+  const takeStreak = (feature: string, model: string): number => {
+    const key = `${feature}${SEP}${model}`;
+    const n = failStreak.get(key) ?? 0;
+    if (n > 0) failStreak.delete(key);
+    return n;
+  };
+
   return {
+    retryStats: () => ({ totalRetries, retryStorms }),
     async create(args: CreateArgs, tags: { feature?: string } = {}): Promise<R> {
       const day = periodKey(now(), period, timezone);
       const feature = tags.feature ?? 'default';
@@ -157,7 +184,16 @@ export function guard<R extends object>(
         const usd = cost(args.model, usage);
         const dayTotalUsd = await store.add(totalKey, usd - reserved);
         await store.add(`${opts.project}${SEP}${feature}${SEP}${day}`, usd);
-        onSpend?.({ project: opts.project, feature, model: args.model, usd, dayTotalUsd });
+        const retryCount = takeStreak(feature, args.model); // 성공 → 스트릭 리셋
+        const event: SpendEvent = {
+          project: opts.project,
+          feature,
+          model: args.model,
+          usd,
+          dayTotalUsd,
+        };
+        if (retryCount > 0) event.retryCount = retryCount;
+        onSpend?.(event);
       };
 
       // usage가 없거나(null) 인식 실패(throw)일 때 onMissingUsage 정책 적용.
@@ -201,6 +237,7 @@ export function guard<R extends object>(
         try {
           stream = (await client.create(callArgs)) as AsyncIterable<unknown>;
         } catch (err) {
+          noteFailure(feature, args.model);
           await rollback();
           throw err;
         }
@@ -219,6 +256,7 @@ export function guard<R extends object>(
       try {
         res = await client.create(args);
       } catch (err) {
+        noteFailure(feature, args.model);
         await rollback();
         throw err;
       }
