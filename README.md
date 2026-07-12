@@ -10,7 +10,7 @@
 
 **A circuit breaker for your LLM API bill.** One wrap, set a hard daily cap — runaway retry loops get blocked *before* they bill you. Plus per-feature cost attribution so you know what actually costs what.
 
-> Built for indie devs shipping on the OpenAI / Anthropic APIs who've seen "a $40 bill from a $5 task." Drop-in: your calls still go straight to the provider — `budget-guard` just counts and caps.
+> Built for indie devs who've seen "a $40 bill from a $5 task." Works with the OpenAI / Anthropic / Gemini SDKs directly, or through the Vercel AI SDK (v5 + v7), LangChain.js, LlamaIndex.TS and Mastra adapters. Drop-in: your calls still go straight to the provider — `budget-guard` just counts and caps.
 
 Free & open source (MIT). A hosted dashboard with cross-project spend + alerts is planned — but the SDK is, and stays, free.
 
@@ -53,7 +53,7 @@ await ai.create(
 );
 ```
 
-`budget-guard` auto-detects OpenAI (`prompt_tokens`/`completion_tokens`) and Anthropic (`input_tokens`/`output_tokens`) usage shapes. For anything else, pass your own extractor:
+`budget-guard` auto-detects the usage shapes of OpenAI (incl. Azure, Mistral, DeepSeek, xAI), Anthropic, Google Gemini (`usageMetadata`), AWS Bedrock Converse and Cohere (`billed_units`). Cached and reasoning tokens are billed at their real per-class rates — including the provider quirks (xAI and Gemini report reasoning *outside* the output count; budget-guard adds it back so you're not silently under-counting). For anything else, pass your own extractor:
 
 ```ts
 guard(client, opts, { usageOf: (res) => ({ input: res.in, output: res.out }) });
@@ -86,24 +86,47 @@ const ai = guard(openai.chat.completions, {
 });
 ```
 
-`store` accepts anything implementing the tiny `SpendStore` interface (`add` / `get` / `entries`), so you can back it with whatever you already run.
+`store` accepts anything implementing the tiny `SpendStore` interface (`add` / `get` / `entries`, plus optional `addIfUnder` for atomic reservations — `redisStore` implements that as a server-side Lua script), so you can back it with whatever you already run.
+
+## Persist across script runs (file)
+
+Cron jobs and short-lived scripts are where in-memory caps quietly fail — every run starts from $0. `fileStore` keeps the ledger in a single JSON file, so 100 runs a day share one cap:
+
+```ts
+import { guard } from 'budget-guard';
+import { fileStore } from 'budget-guard/file';
+
+const ai = guard(openai.chat.completions, {
+  project: 'nightly-job',
+  dailyCapUSD: 5,
+  store: fileStore('/var/tmp/my-app-spend.json'),
+});
+```
+
+Writes are atomic (temp file + rename), parent directories are created, and a corrupted file throws instead of silently resetting your budget. Storage tiers: **memory** = one process, **file** = one machine, **redis** = a fleet. (Concurrent processes should use `redisStore` — the file store targets sequential runs.)
 
 ## Block *before* the call (no overshoot)
 
-By default the cap is enforced on the **next** call after you cross it, so one call can overshoot. Give it an estimator and it blocks the offending call itself:
+By default the cap is enforced on the **next** call after you cross it, so one call can overshoot. Give it an estimator and it blocks the offending call itself — the built-in one is a one-liner:
 
 ```ts
-import { encode } from 'gpt-tokenizer'; // or any tokenizer
+import { guard, estimator } from 'budget-guard';
 
 const ai = guard(openai.chat.completions, {
   project: 'my-app',
   dailyCapUSD: 50,
-  estimateUsage: (args) => ({
-    input: args.messages.reduce((n, m) => n + encode(m.content).length, 0),
-    output: args.max_tokens ?? 512,
-  }),
+  estimateUsage: estimator(), // chars/4 heuristic — fine for a circuit breaker
 });
 ```
+
+`estimator()` reads `prompt` / `system` / `messages` for the input estimate and the declared `max_tokens` (or `maxOutputTokens`) for the output. It knows the new Claude tokenizer generation counts ~30% more tokens (Opus 4.7+, Sonnet 5+, Fable, Mythos — corrected automatically), and it adds tool-schema overhead when you pass `tools`. Want exact counts? Inject any tokenizer:
+
+```ts
+import { countTokens } from 'gpt-tokenizer';
+estimateUsage: estimator({ countTokens });
+```
+
+**Concurrency-safe:** when the store supports it (built-in memory, file and redis stores all do), the estimated cost is **reserved atomically before the call** and settled to the actual cost after — so 100 parallel workers can't race past the cap together. Failed calls roll their reservation back.
 
 ## LlamaIndex.TS
 
@@ -188,7 +211,9 @@ For **Gemini** streaming, set `provider: 'gemini'` — usage comes from each chu
 ## Vercel AI SDK
 
 Using the [AI SDK](https://sdk.vercel.dev)? Wrap any model with the middleware —
-no client to guard, the cap and per-feature metering apply automatically:
+no client to guard, the cap and per-feature metering apply automatically. Works
+with **both AI SDK v5 and v7** (the usage shape is auto-detected per call — one
+entry point, nothing to configure):
 
 ```ts
 import { wrapLanguageModel, generateText } from 'ai';
@@ -252,6 +277,24 @@ const ai = guard(openai.chat.completions, {
 Keep the callback light — it runs synchronously just before the response is
 returned. Push heavy work (network, disk) onto a queue.
 
+## Catch retry storms
+
+The most expensive LLM bug class isn't a big prompt — it's a retry loop quietly re-burning money all night. budget-guard tracks consecutive provider failures per (feature, model) and tells you when it looks like a storm:
+
+```ts
+const ai = guard(openai.chat.completions, {
+  project: 'my-app',
+  dailyCapUSD: 50,
+  retryStormThreshold: 5,
+  onRetryStorm: ({ feature, model, consecutiveFailures }) =>
+    alert(`retry storm: ${feature}/${model} failed ${consecutiveFailures}x in a row`),
+});
+
+ai.retryStats(); // → { totalRetries, retryStorms }
+```
+
+A success resets the streak and stamps `retryCount` on that call's `SpendEvent`, so your logs show "this $0.40 call took 7 attempts". Cap-blocked calls don't count — only calls that actually reached the provider.
+
 ## Monthly caps & time zones
 
 Cap per month instead of per day, and reset on your billing time zone's calendar
@@ -275,17 +318,34 @@ import { spentTotal, periodKey } from 'budget-guard';
 await spentTotal('my-app', store, periodKey(new Date(), 'monthly', 'America/New_York'));
 ```
 
+## Test your budget logic
+
+`budget-guard/testing` ships the pieces you need to test caps deterministically — usage factories, a fixed clock for day/month boundaries, an operation-recording store:
+
+```ts
+import { buildOpenAIUsage, createFixedClock, FakeSpendStore } from 'budget-guard/testing';
+
+const store = new FakeSpendStore();
+const ai = guard(fakeClient, { project: 't', dailyCapUSD: 1, store },
+  { now: createFixedClock('2026-01-31T23:59:00Z') });
+// ...assert on store.ops: every add/get/addIfUnder, in order, with amounts
+```
+
 ## Options
 
 ```ts
 guard(client, {
   project: 'my-app',     // groups spend & shares one cap
-  dailyCapUSD: 50,       // hard cap per day
+  dailyCapUSD: 50,       // hard cap per period
+  period: 'daily',       // 'daily' (default) | 'monthly'
+  timezone: 'UTC',       // optional IANA zone for cap reset (default UTC)
   onCap: 'block',        // 'block' (throw) | 'warn' (log only). default 'block'
   store: myStore,        // optional SpendStore (default: in-memory, per-process)
-  estimateUsage: fn,     // optional: block before a call would exceed the cap
+  estimateUsage: fn,     // optional: block before a call would exceed the cap (see estimator())
   onSpend: fn,           // optional: SpendEvent per successful call (logs/traces)
   onExceeded: fn,        // optional: fires when the cap is hit (before block/warn)
+  retryStormThreshold: 5,// optional: consecutive-failure streak that fires onRetryStorm
+  onRetryStorm: fn,      // optional: called once when the streak hits the threshold
   provider: 'anthropic', // optional: 'openai' (default) | 'anthropic' | 'gemini' — for streaming
   onMissingUsage: 'zero',// optional: 'throw' (default) | 'zero' — when a response has no usage
 });
@@ -306,13 +366,13 @@ Runnable, no API key needed — see [`examples/`](./examples):
 - [`cost-observability.mjs`](./examples/cost-observability.mjs) — stream per-call cost via `onSpend`
 - [`redis-fleet.mjs`](./examples/redis-fleet.mjs) — one shared cap across a worker fleet
 
-## Notes (v0.2)
+## Notes
 
-- **Multi-instance + persistence** via a pluggable `SpendStore` (in-memory default, Redis adapter included, or bring your own).
-- **No-overshoot mode** when you supply `estimateUsage`; otherwise the cap is enforced on the next call after you cross it.
-- `spendReport()` is async.
-- Prices live in `PRICES` (USD per 1K tokens) — PRs to keep them current are welcome.
-- Roadmap: streaming usage, more providers, a hosted dashboard. See ROADMAP.
+- **Zero runtime dependencies.** Adapters use structural typing or optional peer deps; the tokenizer for `estimator()` is bring-your-own.
+- **Never silently zero.** Unknown usage shapes and corrupted spend files throw by default (`onMissingUsage: 'zero'` opts out per guard) — a budget tool shouldn't quietly stop counting.
+- The Redis Lua reservation path is integration-tested against a real Redis in CI (atomicity, TTL, `NOSCRIPT` fallback).
+- Prices live in `PRICES` (USD per 1K tokens, incl. per-class cache rates and the per-provider reasoning-token convention) — PRs to keep them current are welcome.
+- See [ROADMAP.md](./ROADMAP.md) for what's next (hosted dashboard is the only major thing left).
 
 ## Migrating from 0.1
 
