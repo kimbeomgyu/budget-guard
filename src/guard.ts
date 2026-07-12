@@ -101,32 +101,61 @@ export function guard<R extends object>(
       const day = periodKey(now(), period, timezone);
       const feature = tags.feature ?? 'default';
       const totalKey = `${opts.project}${SEP}${TOTAL}${SEP}${day}`;
-      const spentToday = await store.get(totalKey);
 
       // --- 하드 캡 (호출 전) ---
-      // estimateUsage가 있으면 "이 호출이 넘길지"를 미리 보고 그 호출을 차단(overshoot 방지).
-      // 없으면 이미 캡을 넘긴 경우 다음 호출을 차단.
-      const projected = opts.estimateUsage
-        ? spentToday + cost(args.model, opts.estimateUsage(args))
-        : spentToday;
-      const over = opts.estimateUsage
-        ? projected > opts.dailyCapUSD
-        : spentToday >= opts.dailyCapUSD;
-      if (over) {
-        opts.onExceeded?.({
-          project: opts.project,
-          spentUsd: spentToday,
-          capUsd: opts.dailyCapUSD,
-        });
-        const err = new BudgetExceededError(opts.project, spentToday, opts.dailyCapUSD);
-        if (onCap === 'block') throw err;
-        console.warn(err.message);
+      // 예약 경로: estimateUsage + store.addIfUnder + block 모드면 추정 비용을 원자적으로
+      // 선점한다. 동시 호출들이 같은 잔액을 보고 전부 통과하는 TOCTOU 오버슛이 사라진다.
+      // 정산은 recordCost에서 차액(실비 - 예약)만 더한다.
+      let reserved = 0;
+      if (opts.estimateUsage && store.addIfUnder && onCap === 'block') {
+        const est = cost(args.model, opts.estimateUsage(args));
+        const r = await store.addIfUnder(totalKey, est, opts.dailyCapUSD);
+        if (r === -1) {
+          const spentToday = await store.get(totalKey);
+          opts.onExceeded?.({
+            project: opts.project,
+            spentUsd: spentToday,
+            capUsd: opts.dailyCapUSD,
+          });
+          throw new BudgetExceededError(opts.project, spentToday, opts.dailyCapUSD);
+        }
+        reserved = est;
+      } else {
+        // 비예약 경로(기존 동작): estimateUsage가 있으면 "이 호출이 넘길지"를 미리 보고
+        // 그 호출을 차단(overshoot 방지), 없으면 이미 넘긴 경우 다음 호출을 차단.
+        const spentToday = await store.get(totalKey);
+        const projected = opts.estimateUsage
+          ? spentToday + cost(args.model, opts.estimateUsage(args))
+          : spentToday;
+        const over = opts.estimateUsage
+          ? projected > opts.dailyCapUSD
+          : spentToday >= opts.dailyCapUSD;
+        if (over) {
+          opts.onExceeded?.({
+            project: opts.project,
+            spentUsd: spentToday,
+            capUsd: opts.dailyCapUSD,
+          });
+          const err = new BudgetExceededError(opts.project, spentToday, opts.dailyCapUSD);
+          if (onCap === 'block') throw err;
+          console.warn(err.message);
+        }
       }
+
+      // 호출 자체가 실패하면(돈 안 나감) 예약을 되돌린다.
+      // 호출은 성공했는데 usage를 못 읽는 경우는 되돌리지 않는다 — 예약(추정치)이
+      // 그나마 가장 나은 청구 근거라서(과소계상보다 보수적 유지).
+      const rollback = async (): Promise<void> => {
+        if (reserved > 0) {
+          await store.add(totalKey, -reserved);
+          reserved = 0;
+        }
+      };
 
       // --- 비용 적립 + 기능별 귀속 (스트리밍/비스트리밍 공유) ---
       const recordCost = async (usage: Usage): Promise<void> => {
         const usd = cost(args.model, usage);
-        const dayTotalUsd = await store.add(totalKey, usd);
+        const dayTotalUsd = await store.add(totalKey, usd - reserved);
         await store.add(`${opts.project}${SEP}${feature}${SEP}${day}`, usd);
         onSpend?.({ project: opts.project, feature, model: args.model, usd, dayTotalUsd });
       };
@@ -168,7 +197,13 @@ export function guard<R extends object>(
               },
             }
           : args;
-        const stream = (await client.create(callArgs)) as AsyncIterable<unknown>;
+        let stream: AsyncIterable<unknown>;
+        try {
+          stream = (await client.create(callArgs)) as AsyncIterable<unknown>;
+        } catch (err) {
+          await rollback();
+          throw err;
+        }
         async function* metered(): AsyncGenerator<unknown> {
           for await (const chunk of stream) {
             reader.observe(chunk);
@@ -180,7 +215,13 @@ export function guard<R extends object>(
       }
 
       // --- 비스트리밍: 응답을 그대로 돌려주고 usage로 정산 ---
-      const res = await client.create(args);
+      let res: R;
+      try {
+        res = await client.create(args);
+      } catch (err) {
+        await rollback();
+        throw err;
+      }
       await recordCost(resolveUsage(() => extract(res)));
       return res;
     },

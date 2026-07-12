@@ -18,6 +18,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Atomic cap reservation (kills the TOCTOU race)** — optional
+  `SpendStore.addIfUnder(key, amount, cap)`: atomically add-if-it-fits, return `-1`
+  (no mutation) otherwise. `MemoryStore` implements it synchronously; `redisStore`
+  implements it as a server-side Lua script (`SCRIPT LOAD` + `EVALSHA`, `EVAL`
+  fallback on `NOSCRIPT`) when the client exposes `eval`/`evalSha`. When you pass
+  `estimateUsage` (and `onCap` is `'block'`), `guard()` now *reserves* the estimated
+  cost atomically before the call and settles the difference after — 100 concurrent
+  $0.10 calls against a $5 cap let exactly 50 through instead of all 100 racing past
+  the check. Failed calls roll the reservation back. Stores without `addIfUnder`
+  keep the previous behavior.
+
 - **Vercel AI SDK v7 support** — `budgetGuardMiddleware` now works with both AI SDK
   v5 (`LanguageModelV2`, flat `usage.inputTokens`) and v7 (`LanguageModelV4`, nested
   `usage.inputTokens.total` / `outputTokens.total`), auto-detected per call from the
