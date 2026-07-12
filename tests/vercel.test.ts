@@ -91,3 +91,49 @@ describe('budgetGuardMiddleware (Vercel AI SDK v5)', () => {
     );
   });
 });
+
+describe('budgetGuardMiddleware (Vercel AI SDK v7 — 중첩 usage 자동 감지)', () => {
+  // v7 usage: inputTokens/outputTokens가 객체. output.total은 reasoning 포함 총계.
+  const v7Usage = {
+    inputTokens: { total: 1000, noCache: 200, cacheRead: 800, cacheWrite: 0 },
+    outputTokens: { total: 500, text: 400, reasoning: 100 },
+  };
+
+  it('v7 중첩 usage → v5 평면과 같은 USD로 정산한다', async () => {
+    const s = new MemoryStore();
+    const mw = budgetGuardMiddleware({ project: 'v7', dailyCapUSD: 99, store: s, feature: 'f' });
+    await mw.wrapGenerate({ doGenerate: async () => ({ usage: v7Usage }), model });
+    const rep = await spendReport('v7', undefined, s);
+    // input 1000(캐시 800) / output 500 — reasoning은 total에 이미 포함이므로 별도 가산 없음
+    expect(rep.f).toBeCloseTo(cost('gpt-4o', { input: 1000, output: 500, cachedInput: 800 }), 10);
+  });
+
+  it('v7 wrapStream: finish 파트의 중첩 usage로 1회 정산한다', async () => {
+    const s = new MemoryStore();
+    const mw = budgetGuardMiddleware({ project: 'v7s', dailyCapUSD: 99, store: s, feature: 'f' });
+    const parts = [
+      { type: 'text-delta', delta: 'hi' },
+      { type: 'finish', usage: v7Usage },
+    ];
+    const out = await mw.wrapStream({
+      doStream: async () => ({ stream: ReadableStream.from(parts) }),
+      model,
+    });
+    for await (const _p of out.stream) void _p;
+    const rep = await spendReport('v7s', undefined, s);
+    expect(rep.f).toBeCloseTo(cost('gpt-4o', { input: 1000, output: 500, cachedInput: 800 }), 10);
+  });
+
+  it('v7: total이 undefined인 중첩 usage는 0으로 계산한다 (제공자 미보고)', async () => {
+    const s = new MemoryStore();
+    const mw = budgetGuardMiddleware({ project: 'v7u', dailyCapUSD: 99, store: s, feature: 'f' });
+    await mw.wrapGenerate({
+      doGenerate: async () => ({
+        usage: { inputTokens: { total: undefined }, outputTokens: { total: undefined } },
+      }),
+      model,
+    });
+    const rep = await spendReport('v7u', undefined, s);
+    expect(rep.f).toBe(0);
+  });
+});

@@ -18,6 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Vercel AI SDK v7 support** — `budgetGuardMiddleware` now works with both AI SDK
+  v5 (`LanguageModelV2`, flat `usage.inputTokens`) and v7 (`LanguageModelV4`, nested
+  `usage.inputTokens.total` / `outputTokens.total`), auto-detected per call from the
+  usage shape — one entry point, no options. v7 `cacheRead` maps to `cachedInput`;
+  v7 `outputTokens.total` already includes reasoning tokens so they are not
+  double-billed. Verified against real `ai@7.0.22` (generateText + streamText,
+  over-cap blocked before `doGenerate`/`doStream`) and real `ai@5` (no regression).
+
 - **Monthly caps & IANA time zones** — `period: 'daily' | 'monthly'` and an optional
   `timezone` on `GuardOptions`. The cap resets on the configured zone's calendar day
   or month (default daily/UTC — unchanged). Invalid `timezone` throws at
