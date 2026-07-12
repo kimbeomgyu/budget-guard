@@ -26,6 +26,8 @@ export interface SpendEvent {
   usd: number;
   /** 이 project의 그날 누적 비용(USD, 이 호출 반영 후). */
   dayTotalUsd: number;
+  /** 이 성공 직전까지 같은 (feature, model)에서 연속 실패한 횟수 (재시도 끝의 성공이면 > 0). */
+  retryCount?: number;
 }
 
 /** guard()에 넘기는 설정. */
@@ -69,6 +71,19 @@ export interface GuardOptions {
   estimateUsage?: (args: { model: string; [k: string]: unknown }) => Usage;
   /** (선택) 캡 초과가 감지될 때 호출되는 콜백. block/warn 동작 전에 실행됨. */
   onExceeded?: (info: { project: string; spentUsd: number; capUsd: number }) => void;
+  /**
+   * (선택) 같은 (feature, model)의 제공자 호출이 이 횟수만큼 연속 실패하면 리트라이 스톰으로
+   * 판단, onRetryStorm을 1회 호출한다. 재시도 루프가 조용히 돈을 태우는 걸 조기에 드러내는 신호.
+   * (성공하면 카운터 리셋. 캡 차단은 실패로 세지 않음 — 제공자로 나간 호출만.)
+   */
+  retryStormThreshold?: number;
+  /** (선택) 리트라이 스톰 감지 시 1회 호출되는 콜백. */
+  onRetryStorm?: (info: {
+    project: string;
+    feature: string;
+    model: string;
+    consecutiveFailures: number;
+  }) => void;
   /**
    * (선택) 성공한 호출마다 비용 이벤트를 방출하는 콜백.
    * 하드 캡과 짝을 이루는 "관측" 훅 — 호출별 비용을 로그/트레이스/대시보드로 흘려보낸다.

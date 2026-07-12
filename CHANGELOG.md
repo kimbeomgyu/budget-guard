@@ -18,6 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Retry-storm detection** — the most expensive LLM bug class is a retry loop
+  quietly re-burning money. New `retryStormThreshold` + `onRetryStorm` on
+  `GuardOptions`: guard tracks consecutive provider-call failures per
+  (feature, model) and fires the callback once when the streak hits the threshold
+  (success resets it; cap-blocks don't count — only calls that reached the
+  provider). The settling success's `SpendEvent` carries `retryCount`, and the
+  guarded client gains `retryStats()` → `{ totalRetries, retryStorms }`.
+
 - **Atomic cap reservation (kills the TOCTOU race)** — optional
   `SpendStore.addIfUnder(key, amount, cap)`: atomically add-if-it-fits, return `-1`
   (no mutation) otherwise. `MemoryStore` implements it synchronously; `redisStore`
