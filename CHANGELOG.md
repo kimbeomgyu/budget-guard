@@ -18,6 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`budget-guard/testing` subpath** — helpers for testing your app's budget logic:
+  `buildOpenAIUsage()` / `buildAnthropicUsage()` usage factories (defaults 0,
+  override what you need), `createFixedClock(iso)` for deterministic day/month
+  boundary tests (plug into `guard`'s `internals.now`), `FakeSpendStore` (records
+  every operation, delegates to `MemoryStore`, includes `addIfUnder` so reservation
+  flows are assertable), and `simulateConcurrentIncrements(store, key, n, usd)` for
+  verifying custom store atomicity.
+
 - **Built-in pre-call estimator (`estimator()`)** — drop-in factory for
   `GuardOptions.estimateUsage`: collects text from `prompt`/`system`/`messages`
   (string or multi-part), counts tokens via an injected tokenizer
