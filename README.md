@@ -368,6 +368,9 @@ Runnable, no API key needed — see [`examples/`](./examples):
 - [`basic-cap.mjs`](./examples/basic-cap.mjs) — hard cap + per-feature `spendReport()`
 - [`cost-observability.mjs`](./examples/cost-observability.mjs) — stream per-call cost via `onSpend`
 - [`redis-fleet.mjs`](./examples/redis-fleet.mjs) — one shared cap across a worker fleet
+- [`precall-block.mjs`](./examples/precall-block.mjs) — `estimator()` + atomic reservation under 20 concurrent calls
+- [`cron-file-cap.mjs`](./examples/cron-file-cap.mjs) — one cap across separate script runs via `fileStore`
+- [`retry-storm.mjs`](./examples/retry-storm.mjs) — catching a retry loop that re-burns money
 
 ## Notes
 

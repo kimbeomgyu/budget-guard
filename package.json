@@ -36,14 +36,24 @@
     "format": "biome check --write",
     "prepublishOnly": "npm run build"
   },
+  "sideEffects": false,
   "keywords": [
     "openai",
     "anthropic",
+    "gemini",
     "llm",
+    "llmops",
     "cost",
+    "cost-tracking",
     "budget",
+    "spend",
+    "circuit-breaker",
     "tokens",
     "ai",
+    "ai-sdk",
+    "langchain",
+    "llamaindex",
+    "mastra",
     "rate-limit"
   ],
   "repository": {

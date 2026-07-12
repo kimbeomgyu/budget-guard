@@ -18,6 +18,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Three new runnable examples** (`examples/`, no API key needed):
+  `precall-block.mjs` (estimator + atomic reservation under 20 concurrent calls),
+  `cron-file-cap.mjs` (one cap across separate script runs via `fileStore`),
+  `retry-storm.mjs` (catching a retry loop that re-burns money). Package hygiene:
+  `sideEffects: false` for bundler tree-shaking and expanded npm keywords
+  (gemini, llmops, cost-tracking, circuit-breaker, ai-sdk, langchain, llamaindex,
+  mastra).
+
 - **`budget-guard/file` — file-backed spend store** — closes a real gap for cron
   jobs and short-lived scripts: the default `MemoryStore` resets every run, so a
   script invoked 100×/day effectively had no cap. `fileStore(path)` persists spend
