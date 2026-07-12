@@ -6,6 +6,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **`budget-guard/file` — file-backed spend store** — closes a real gap for cron
+  jobs and short-lived scripts: the default `MemoryStore` resets every run, so a
+  script invoked 100×/day effectively had no cap. `fileStore(path)` persists spend
+  in a single JSON file (temp-file + atomic rename, so a crash can't corrupt it),
+  implements `addIfUnder` (atomic within a process), creates parent directories,
+  and refuses to silently reset on a corrupted file (delete the file to reset).
+  Ships as a subpath export so the main entry stays free of `node:*` imports
+  (edge/browser bundles unaffected). Storage tiers now: memory = process,
+  file = machine, redis = fleet. (Build-time only: added `@types/node` devDep +
+  `types: ["node"]` in tsconfig.)
+
 ## [0.6.0] - 2026-07-12
 
 ### Fixed
