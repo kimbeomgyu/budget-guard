@@ -18,6 +18,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **Built-in pre-call estimator (`estimator()`)** — drop-in factory for
+  `GuardOptions.estimateUsage`: collects text from `prompt`/`system`/`messages`
+  (string or multi-part), counts tokens via an injected tokenizer
+  (`{ countTokens }`, e.g. `gpt-tokenizer` — BYO, zero new dependencies) or a
+  chars/4 heuristic, and uses the declared output cap (`max_tokens` /
+  `maxOutputTokens` / `max_completion_tokens`) for the output estimate. Applies the
+  ~1.3× correction for the new Claude tokenizer generation (Opus 4.7+, Sonnet 5+,
+  Haiku 5+, Fable, Mythos ≈ 30% more tokens for the same text); unknown model
+  families get the conservative 1.3× plus a warning. Combined with the new atomic
+  reservation, this makes true pre-call cap blocking a one-liner.
+
 - **Retry-storm detection** — the most expensive LLM bug class is a retry loop
   quietly re-burning money. New `retryStormThreshold` + `onRetryStorm` on
   `GuardOptions`: guard tracks consecutive provider-call failures per
