@@ -48,13 +48,14 @@ export class MemoryStore implements SpendStore {
   }
 }
 
-/** redisStore가 기대하는 최소 redis 클라이언트 형태 (node-redis v4 호환). */
+/** redisStore가 기대하는 최소 redis 클라이언트 형태 (node-redis v4/v6 호환). */
 export interface RedisLike {
   incrByFloat(key: string, amount: number): Promise<string | number>;
   get(key: string): Promise<string | null>;
   expire(key: string, seconds: number): Promise<unknown>;
   scan(
-    cursor: number,
+    // v4는 number, v5+는 string 커서 — 문자열을 넘기면 양쪽 다 안전 (v4는 내부 toString)
+    cursor: number | string,
     opts: { MATCH: string; COUNT: number },
   ): Promise<{ cursor: number | string; keys: string[] }>;
   /** (선택) Lua 스크립트 지원 — 있으면 addIfUnder(원자적 캡 예약)가 켜진다. */
@@ -83,7 +84,7 @@ return n`;
 
 /**
  * 여러 인스턴스가 캡을 공유하는 Redis 백엔드 저장소. (BYO 클라이언트 — redis를 의존성으로 안 가짐)
- * node-redis v4 기준: `redisStore(createClient())`. 키는 ttlSeconds(기본 2일) 후 만료되어 자연 일일 리셋.
+ * node-redis v4/v6: `redisStore(createClient())`. 키는 ttlSeconds(기본 2일) 후 만료되어 자연 일일 리셋.
  */
 export function redisStore(
   client: RedisLike,
@@ -131,15 +132,15 @@ export function redisStore(
     },
     async entries(prefix) {
       const out: Array<[string, number]> = [];
-      let cursor: number = 0;
+      let cursor = '0';
       do {
         const res = await client.scan(cursor, { MATCH: `${pre + prefix}*`, COUNT: 200 });
-        cursor = Number(res.cursor);
+        cursor = String(res.cursor);
         for (const fullKey of res.keys) {
           const v = await client.get(fullKey);
           if (v != null) out.push([fullKey.slice(pre.length), num(v)]);
         }
-      } while (cursor !== 0);
+      } while (cursor !== '0');
       return out;
     },
   };
