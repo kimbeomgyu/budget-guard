@@ -2,7 +2,7 @@ import { cost } from './cost.js';
 import type { SpendStore } from './store.js';
 import { MemoryStore } from './store.js';
 import { type StreamUsageReader, streamUsageReader } from './stream.js';
-import type { GuardOptions, SpendEvent, Usage } from './types.js';
+import type { GuardOptions, RejectedEvent, SpendEvent, Usage } from './types.js';
 import { normalizeUsage, UnknownUsageShapeError } from './usage.js';
 
 // SpendEvent는 types.ts로 이동(공개 GuardOptions.onSpend가 참조). 하위호환 위해 여기서도 재노출.
@@ -129,6 +129,21 @@ export function guard<R extends object>(
       const feature = tags.feature ?? 'default';
       const totalKey = `${opts.project}${SEP}${TOTAL}${SEP}${day}`;
 
+      // 캡 차단 확정: dead-letter 훅(onRejected)에 요청 원본을 넘긴 뒤 던진다.
+      const rejectCall = (spentUsd: number, estimatedUsd?: number): never => {
+        const event: RejectedEvent = {
+          project: opts.project,
+          feature,
+          model: args.model,
+          spentUsd,
+          capUsd: opts.dailyCapUSD,
+          args,
+        };
+        if (estimatedUsd !== undefined) event.estimatedUsd = estimatedUsd;
+        opts.onRejected?.(event);
+        throw new BudgetExceededError(opts.project, spentUsd, opts.dailyCapUSD);
+      };
+
       // --- 하드 캡 (호출 전) ---
       // 예약 경로: estimateUsage + store.addIfUnder + block 모드면 추정 비용을 원자적으로
       // 선점한다. 동시 호출들이 같은 잔액을 보고 전부 통과하는 TOCTOU 오버슛이 사라진다.
@@ -144,28 +159,24 @@ export function guard<R extends object>(
             spentUsd: spentToday,
             capUsd: opts.dailyCapUSD,
           });
-          throw new BudgetExceededError(opts.project, spentToday, opts.dailyCapUSD);
+          rejectCall(spentToday, est);
         }
         reserved = est;
       } else {
         // 비예약 경로(기존 동작): estimateUsage가 있으면 "이 호출이 넘길지"를 미리 보고
         // 그 호출을 차단(overshoot 방지), 없으면 이미 넘긴 경우 다음 호출을 차단.
         const spentToday = await store.get(totalKey);
-        const projected = opts.estimateUsage
-          ? spentToday + cost(args.model, opts.estimateUsage(args))
-          : spentToday;
-        const over = opts.estimateUsage
-          ? projected > opts.dailyCapUSD
-          : spentToday >= opts.dailyCapUSD;
+        const est = opts.estimateUsage ? cost(args.model, opts.estimateUsage(args)) : undefined;
+        const over =
+          est !== undefined ? spentToday + est > opts.dailyCapUSD : spentToday >= opts.dailyCapUSD;
         if (over) {
           opts.onExceeded?.({
             project: opts.project,
             spentUsd: spentToday,
             capUsd: opts.dailyCapUSD,
           });
-          const err = new BudgetExceededError(opts.project, spentToday, opts.dailyCapUSD);
-          if (onCap === 'block') throw err;
-          console.warn(err.message);
+          if (onCap === 'block') rejectCall(spentToday, est);
+          console.warn(new BudgetExceededError(opts.project, spentToday, opts.dailyCapUSD).message);
         }
       }
 

@@ -16,6 +16,6 @@ export { guardLlamaIndex } from './llamaindex.js';
 export { PRICES } from './pricing.js';
 export type { RedisLike, SpendStore } from './store.js';
 export { MemoryStore, redisStore } from './store.js';
-export type { GuardOptions, Usage } from './types.js';
+export type { GuardOptions, RejectedEvent, Usage } from './types.js';
 export { normalizeUsage, UnknownUsageShapeError } from './usage.js';
 export { budgetGuardMiddleware } from './vercel.js';

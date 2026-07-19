@@ -30,6 +30,28 @@ export interface SpendEvent {
   retryCount?: number;
 }
 
+/**
+ * 캡 차단으로 제공자에 나가지 못한 호출마다 방출되는 이벤트 (dead-letter 훅).
+ * 요청 원본(args)을 그대로 담으므로 버리는 대신 큐·로그에 보관했다가 재실행할 수 있다.
+ * 이벤트는 호출자 프로세스를 떠나지 않는다 — 저장 여부·방식·보존 범위는 전적으로 호출자 선택.
+ */
+export interface RejectedEvent {
+  /** 비용을 묶는 단위(=GuardOptions.project). */
+  project: string;
+  /** 이 호출의 기능 태그(create 두 번째 인자). 기본 'default'. */
+  feature: string;
+  /** 호출에 쓰일 예정이던 모델 id. */
+  model: string;
+  /** 차단 시점의 그 주기 누적 지출(USD). */
+  spentUsd: number;
+  /** 하드 캡(USD). */
+  capUsd: number;
+  /** estimateUsage가 설정된 경우, 이 호출의 추정 비용(USD). */
+  estimatedUsd?: number;
+  /** create()에 넘어온 요청 인자 원본 — 그대로 다시 create()에 넣으면 재실행된다. */
+  args: { model: string; [k: string]: unknown };
+}
+
 /** guard()에 넘기는 설정. */
 export interface GuardOptions {
   /** 비용을 묶는 단위(예: 'agent-worker'). */
@@ -71,6 +93,13 @@ export interface GuardOptions {
   estimateUsage?: (args: { model: string; [k: string]: unknown }) => Usage;
   /** (선택) 캡 초과가 감지될 때 호출되는 콜백. block/warn 동작 전에 실행됨. */
   onExceeded?: (info: { project: string; spentUsd: number; capUsd: number }) => void;
+  /**
+   * (선택) 캡 차단으로 **실제 거부된** 호출마다 실행되는 dead-letter 훅.
+   * onExceeded와 달리 'warn' 통과는 세지 않고, 요청 원본(args)을 포함한다 —
+   * BudgetExceededError로 증발할 프롬프트를 검사·재실행 가능한 곳에 남길 수 있다.
+   * throw 직전에 동기로 실행되므로 가볍게 유지할 것(무거운 저장은 큐에).
+   */
+  onRejected?: (event: RejectedEvent) => void;
   /**
    * (선택) 같은 (feature, model)의 제공자 호출이 이 횟수만큼 연속 실패하면 리트라이 스톰으로
    * 판단, onRetryStorm을 1회 호출한다. 재시도 루프가 조용히 돈을 태우는 걸 조기에 드러내는 신호.
