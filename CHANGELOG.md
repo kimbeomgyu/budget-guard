@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- **`redisStore` works with node-redis v5/v6** — `entries()` passed the SCAN
+  cursor as a number, which the v5+ RESP encoder rejects (`TypeError: must be of
+  type string | Buffer`). The cursor is now a string, which v4 also accepts.
+  devDeps and CI verify against redis 6.
+
 - **LlamaIndex streaming is now metered** — `guardLlamaIndex` used to enforce the
   cap on streaming `chat()` but let the spend go uncounted (a metering hole for
   streaming-heavy apps). Each chunk's `raw` is now observed with all three
@@ -17,6 +22,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   after the fact would be worse.
 
 ### Added
+
+- **`onRejected` dead-letter hook** ([#54](https://github.com/kimbeomgyu/budget-guard/issues/54),
+  suggested by a reader) — fires for every call the cap actually blocks, with the
+  feature tag, spent/cap/estimated USD, and the original request `args`, so a
+  rejected prompt can be queued, logged, or replayed instead of evaporating with
+  the `BudgetExceededError`. Unlike `onExceeded` it does not fire on `'warn'`
+  pass-throughs. The event never leaves the caller's process; storing it (and
+  where) is entirely the caller's choice.
 
 - **Three new runnable examples** (`examples/`, no API key needed):
   `precall-block.mjs` (estimator + atomic reservation under 20 concurrent calls),
