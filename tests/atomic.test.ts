@@ -50,7 +50,7 @@ describe('guard 예약 경로 (TOCTOU 제거)', () => {
     expect(ok).toBe(50);
     expect(blocked).toBe(50);
     expect(client.calls).toBe(50); // 차단된 호출은 제공자로 안 나감
-    const total = await store.get('fleet|__total__|' + new Date().toISOString().slice(0, 10));
+    const total = await store.get(`fleet|__total__|${new Date().toISOString().slice(0, 10)}`);
     expect(total).toBeLessThanOrEqual(5.000000001);
     expect(total).toBeCloseTo(5, 6);
   });
@@ -66,7 +66,7 @@ describe('guard 예약 경로 (TOCTOU 제거)', () => {
       { project: 'rb', dailyCapUSD: 5, store, estimateUsage: () => TEN_CENTS },
     );
     await expect(ai.create({ model: 'gpt-4o' })).rejects.toThrow('provider down');
-    const total = await store.get('rb|__total__|' + new Date().toISOString().slice(0, 10));
+    const total = await store.get(`rb|__total__|${new Date().toISOString().slice(0, 10)}`);
     expect(total).toBe(0);
   });
 
@@ -77,13 +77,13 @@ describe('guard 예약 경로 (TOCTOU 제거)', () => {
       { project: 'settle', dailyCapUSD: 5, store, estimateUsage: () => TEN_CENTS },
     );
     await ai.create({ model: 'gpt-4o' });
-    const total = await store.get('settle|__total__|' + new Date().toISOString().slice(0, 10));
+    const total = await store.get(`settle|__total__|${new Date().toISOString().slice(0, 10)}`);
     expect(total).toBeCloseTo(0.05, 10);
   });
 
   it("onCap 'warn'이면 예약 없이 기존 경로(경고 후 통과)", async () => {
     const store = new MemoryStore();
-    store.add('warn|__total__|' + new Date().toISOString().slice(0, 10), 10); // 이미 초과
+    store.add(`warn|__total__|${new Date().toISOString().slice(0, 10)}`, 10); // 이미 초과
     const client = slowClient({ input: 0, output: 1000 });
     const ai = guard(client, {
       project: 'warn',
