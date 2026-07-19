@@ -100,6 +100,10 @@ export function guard<R extends object>(
   const extract =
     internals.usageOf ?? ((res: R) => normalizeUsage((res as { usage?: unknown }).usage));
 
+  // 소프트 임계 경고: 주기당 1회, 누적이 threshold*cap을 처음 넘을 때. 프로세스 로컬.
+  const threshold = opts.thresholdFraction ?? 0.8;
+  const thresholdFired = new Set<string>();
+
   // 리트라이 스톰 감지: (feature|model)별 연속 실패 스트릭. 성공 시 리셋.
   // 제공자로 실제 나간 호출의 실패만 센다(캡 차단은 제외). 프로세스 로컬 신호.
   const failStreak = new Map<string, number>();
@@ -205,6 +209,20 @@ export function guard<R extends object>(
         };
         if (retryCount > 0) event.retryCount = retryCount;
         onSpend?.(event);
+        if (
+          opts.onThreshold &&
+          !thresholdFired.has(totalKey) &&
+          dayTotalUsd >= threshold * opts.dailyCapUSD
+        ) {
+          thresholdFired.clear(); // 지난 주기 키 정리 — Set엔 항상 현재 주기 키 하나만 남는다
+          thresholdFired.add(totalKey);
+          opts.onThreshold({
+            project: opts.project,
+            spentUsd: dayTotalUsd,
+            capUsd: opts.dailyCapUSD,
+            threshold,
+          });
+        }
       };
 
       // usage가 없거나(null) 인식 실패(throw)일 때 onMissingUsage 정책 적용.

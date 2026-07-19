@@ -23,6 +23,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`onThreshold` soft-warning hook** — fires once per period when cumulative
+  spend first crosses `thresholdFraction` (default 0.8) of the cap: the fuel
+  light before the brake. Until now the cap was silent right up to the moment
+  it blocked. Fired-state is process-local (one warning per worker) and resets
+  naturally when the period rolls over.
+
 - **`onRejected` dead-letter hook** ([#54](https://github.com/kimbeomgyu/budget-guard/issues/54),
   suggested by a reader) — fires for every call the cap actually blocks, with the
   feature tag, spent/cap/estimated USD, and the original request `args`, so a
