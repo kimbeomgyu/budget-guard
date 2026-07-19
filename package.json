@@ -75,11 +75,11 @@
     }
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.3",
-    "@langchain/core": "^1.2.1",
+    "@biomejs/biome": "2.5.4",
+    "@langchain/core": "^1.2.3",
     "@types/node": "^26.1.1",
-    "redis": "^4.7.1",
-    "typescript": "^6.0.3",
+    "redis": "^6.1.0",
+    "typescript": "^7.0.2",
     "vitest": "^4.1.9"
   }
 }
