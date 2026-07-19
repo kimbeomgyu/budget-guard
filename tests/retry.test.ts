@@ -37,7 +37,7 @@ describe('리트라이 스톰 감지', () => {
       }
     }
     // 최종 성공 1회만 정산
-    const total = await store.get('storm|__total__|' + new Date().toISOString().slice(0, 10));
+    const total = await store.get(`storm|__total__|${new Date().toISOString().slice(0, 10)}`);
     expect(total).toBeCloseTo(0.0125, 8);
     expect(events).toHaveLength(1);
     expect(events[0].retryCount).toBe(3);
