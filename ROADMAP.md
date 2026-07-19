@@ -64,6 +64,16 @@ issue templates + config · PR template · dependabot · CHANGELOG · README bad
 ## Phase 5 — DX & testing
 - [x] **Test helpers (`budget-guard/testing`)** — subpath export with `buildOpenAIUsage()`/`buildAnthropicUsage()` factories (default 0 + overrides, round-trip through normalizeUsage), `createFixedClock(iso)` (invalid ISO throws; plugs into guard `internals.now`), `FakeSpendStore` (op log + MemoryStore delegate, incl. `addIfUnder` for reservation-path assertions), `simulateConcurrentIncrements`. Test: factories/clock/op-log/concurrent-sum + installed-tarball subpath smoke.
 
+## Phase 6 — demand-gated candidates (2026-07-20)
+Adoption-phase rule: build ≤1 item/week, and pull an unchecked item only when an external
+signal (issue, comment, waitlist entry) asks for it — distribution beats speculative building.
+- [x] **`onThreshold` soft warning** — fuel light at `thresholdFraction` (default 0.8) of the cap, once per period, before the brake. (#59)
+- [x] **`definePrice()` + `onUnknownModel` policy** — new-model-day resilience: BYO rates as a first-class API; `'zero'` keeps the app alive (warn + $0) instead of throwing after a successful call. (#60)
+- [ ] **Per-feature caps** — `featureCaps: { [feature]: usd }` alongside the project cap; unlocks per-user/tenant budgets via `feature: "user:123"`. Trigger: first ask for per-customer limits.
+- [ ] **OTel GenAI subpath** (`budget-guard/otel`) — map SpendEvent onto OpenTelemetry `gen_ai` semconv metrics. Trigger: an observability-stack user asks.
+- [ ] **Provider breadth** — settle + streaming readers beyond OpenAI/Anthropic/Gemini (Bedrock, xAI, Mistral, DeepSeek, Cohere). Trigger: an issue naming a provider.
+- [ ] **Python port** — biggest market, biggest cost. Trigger: sustained traction per the loop's star/DL decision rule, not before.
+
 ## Not now — overkill for a tiny solo lib (revisit when it grows)
 CI matrix across OSes (pure TS runs everywhere); GOVERNANCE.md / CODEOWNERS (no co-maintainers); Renovate (Dependabot already on); benchmark / triage-automation / PR-title-lint workflows (fine at Biome's scale, overhead at 0-10 issues/mo); 7 issue templates (2 is enough); multi-language READMEs & sponsor-tier logo grids (wait for demand); native-binary/WASM release matrices (N/A — pure TS).
 

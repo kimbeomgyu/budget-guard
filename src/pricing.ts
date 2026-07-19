@@ -29,3 +29,28 @@ export const PRICES: Record<
   // AWS Bedrock (region prefixes like `us.`/`eu.` are stripped during lookup)
   'anthropic.claude-sonnet-4': { in: 0.003, out: 0.015 },
 };
+
+/**
+ * 가격표에 없는(또는 갱신할) 모델 단가를 앱에서 등록한다. 1K 토큰당 USD.
+ * 새 모델이 PRICES에 실리기 전에도 정확한 계량을 유지하는 공식 통로.
+ */
+export function definePrice(
+  model: string,
+  price: {
+    in: number;
+    out: number;
+    cachedIn?: number;
+    reasoningInOutput?: boolean;
+    retiresOn?: string;
+  },
+): void {
+  if (
+    typeof price?.in !== 'number' ||
+    typeof price?.out !== 'number' ||
+    price.in < 0 ||
+    price.out < 0
+  ) {
+    throw new Error(`definePrice("${model}"): in/out must be non-negative USD per 1K tokens`);
+  }
+  PRICES[model] = { ...price };
+}
