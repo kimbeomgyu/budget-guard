@@ -114,6 +114,19 @@ export interface GuardOptions {
     consecutiveFailures: number;
   }) => void;
   /**
+   * (선택) 그 주기 누적 지출이 캡의 thresholdFraction(기본 0.8)을 처음 넘을 때 1회 호출.
+   * 캡(차단)이 오기 전의 연료 경고등 — 지금은 조용히 새고 있는데 곧 막힌다는 신호.
+   * 발화 기록은 프로세스 로컬(워커가 여럿이면 워커당 1회). 주기가 바뀌면 자연 리셋.
+   */
+  onThreshold?: (info: {
+    project: string;
+    spentUsd: number;
+    capUsd: number;
+    threshold: number;
+  }) => void;
+  /** (선택) onThreshold 발화 기준 비율(0~1). 기본 0.8. */
+  thresholdFraction?: number;
+  /**
    * (선택) 성공한 호출마다 비용 이벤트를 방출하는 콜백.
    * 하드 캡과 짝을 이루는 "관측" 훅 — 호출별 비용을 로그/트레이스/대시보드로 흘려보낸다.
    * 응답을 돌려주기 직전에 동기로 실행되므로 가볍게 유지할 것(무거운 작업은 큐에).
