@@ -30,7 +30,7 @@ describe('definePrice (BYO 가격)', () => {
 });
 
 describe("onUnknownModel: 'zero' (미등록 모델 정책)", () => {
-  it("기본은 throw — 성공한 호출이라도 정산 시점에 UnknownModelError", async () => {
+  it('기본은 throw — 성공한 호출이라도 정산 시점에 UnknownModelError', async () => {
     const ai = guard(clientFor(), {
       project: 'um',
       dailyCapUSD: 5,
