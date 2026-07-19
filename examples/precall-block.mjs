@@ -37,6 +37,8 @@ const blocked = results.filter(
   (r) => r.status === 'rejected' && r.reason instanceof BudgetExceededError,
 ).length;
 
-console.log(`succeeded: ${ok}, blocked: ${blocked}, provider actually called: ${fakeClient.calls}x`);
+console.log(
+  `succeeded: ${ok}, blocked: ${blocked}, provider actually called: ${fakeClient.calls}x`,
+);
 // → succeeded: 4, blocked: 16, provider actually called: 4x
 // Without atomic reservation, all 20 would have read "spent: $0" and raced through.
