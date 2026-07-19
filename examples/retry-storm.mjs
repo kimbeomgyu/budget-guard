@@ -24,7 +24,8 @@ const ai = guard(flakyClient, {
   retryStormThreshold: 3,
   onRetryStorm: ({ feature, model, consecutiveFailures }) =>
     console.log(`⚠ retry storm: ${feature}/${model} failed ${consecutiveFailures}x in a row`),
-  onSpend: (e) => console.log(`spent $${e.usd.toFixed(4)} (retries before success: ${e.retryCount ?? 0})`),
+  onSpend: (e) =>
+    console.log(`spent $${e.usd.toFixed(4)} (retries before success: ${e.retryCount ?? 0})`),
 });
 
 // Typical app-level retry loop.
