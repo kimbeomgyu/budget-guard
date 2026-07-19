@@ -23,6 +23,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`definePrice()` + `onUnknownModel` policy** — new-model-day resilience.
+  Until now a model missing from the price table threw *after* the provider
+  call succeeded (money spent, app broken — on exactly the day everyone
+  switches to the new model). `definePrice(model, { in, out, ... })` registers
+  rates as a first-class API, and `onUnknownModel: 'zero'` (default remains
+  `'throw'`) logs a warning and bills $0 instead of breaking the call flow,
+  mirroring the `onMissingUsage` contract. Unknown-model errors are now a
+  typed `UnknownModelError`.
+
 - **`onThreshold` soft-warning hook** — fires once per period when cumulative
   spend first crosses `thresholdFraction` (default 0.8) of the cap: the fuel
   light before the brake. Until now the cap was silent right up to the moment

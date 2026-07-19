@@ -74,6 +74,13 @@ export interface GuardOptions {
    */
   onMissingUsage?: 'throw' | 'zero';
   /**
+   * (선택) 가격표에 없는 모델일 때 동작.
+   * - 'throw'(기본): UnknownModelError를 던진다(모르는 단가를 0으로 계상하지 않음 — 예산 정확도 안전).
+   * - 'zero': 경고를 찍고 $0로 청구해 호출 흐름을 유지한다(새 모델 출시일에 앱이 깨지지 않게).
+   *   실단가는 definePrice()로 등록하면 즉시 정확해진다.
+   */
+  onUnknownModel?: 'throw' | 'zero';
+  /**
    * (선택) 스트리밍 호출에서 provider를 명시. 프로바이더마다 usage 전달 방식이 달라서 필요.
    * - 'openai' | 미지정: 최종 청크의 usage를 읽고 `stream_options.include_usage`를 자동 주입.
    * - 'anthropic': message_start(input/캐시)+message_delta(누적 output)에서 usage를 조립. stream_options 주입 안 함.

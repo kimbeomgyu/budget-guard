@@ -1,4 +1,4 @@
-import { cost } from './cost.js';
+import { cost, UnknownModelError } from './cost.js';
 import type { SpendStore } from './store.js';
 import { MemoryStore } from './store.js';
 import { type StreamUsageReader, streamUsageReader } from './stream.js';
@@ -91,6 +91,7 @@ export function guard<R extends object>(
   const now = internals.now ?? (() => new Date());
   const onCap = opts.onCap ?? 'block';
   const onMissingUsage = opts.onMissingUsage ?? 'throw';
+  const onUnknownModel = opts.onUnknownModel ?? 'throw';
   const period = opts.period ?? 'daily';
   const timezone = opts.timezone;
   // 잘못된 timezone이면 여기서 즉시 RangeError.
@@ -148,13 +149,26 @@ export function guard<R extends object>(
         throw new BudgetExceededError(opts.project, spentUsd, opts.dailyCapUSD);
       };
 
+      // 가격표에 없는 모델: 기본은 throw, 'zero'면 경고 후 $0 (definePrice로 실단가 등록).
+      const costOf = (usage: Usage): number => {
+        try {
+          return cost(args.model, usage);
+        } catch (err) {
+          if (!(err instanceof UnknownModelError) || onUnknownModel !== 'zero') throw err;
+          console.warn(
+            `budget-guard: no price for model "${args.model}" — billing $0 (onUnknownModel: 'zero'). Register rates with definePrice().`,
+          );
+          return 0;
+        }
+      };
+
       // --- 하드 캡 (호출 전) ---
       // 예약 경로: estimateUsage + store.addIfUnder + block 모드면 추정 비용을 원자적으로
       // 선점한다. 동시 호출들이 같은 잔액을 보고 전부 통과하는 TOCTOU 오버슛이 사라진다.
       // 정산은 recordCost에서 차액(실비 - 예약)만 더한다.
       let reserved = 0;
       if (opts.estimateUsage && store.addIfUnder && onCap === 'block') {
-        const est = cost(args.model, opts.estimateUsage(args));
+        const est = costOf(opts.estimateUsage(args));
         const r = await store.addIfUnder(totalKey, est, opts.dailyCapUSD);
         if (r === -1) {
           const spentToday = await store.get(totalKey);
@@ -170,7 +184,7 @@ export function guard<R extends object>(
         // 비예약 경로(기존 동작): estimateUsage가 있으면 "이 호출이 넘길지"를 미리 보고
         // 그 호출을 차단(overshoot 방지), 없으면 이미 넘긴 경우 다음 호출을 차단.
         const spentToday = await store.get(totalKey);
-        const est = opts.estimateUsage ? cost(args.model, opts.estimateUsage(args)) : undefined;
+        const est = opts.estimateUsage ? costOf(opts.estimateUsage(args)) : undefined;
         const over =
           est !== undefined ? spentToday + est > opts.dailyCapUSD : spentToday >= opts.dailyCapUSD;
         if (over) {
@@ -196,7 +210,7 @@ export function guard<R extends object>(
 
       // --- 비용 적립 + 기능별 귀속 (스트리밍/비스트리밍 공유) ---
       const recordCost = async (usage: Usage): Promise<void> => {
-        const usd = cost(args.model, usage);
+        const usd = costOf(usage);
         const dayTotalUsd = await store.add(totalKey, usd - reserved);
         await store.add(`${opts.project}${SEP}${feature}${SEP}${day}`, usd);
         const retryCount = takeStreak(feature, args.model); // 성공 → 스트릭 리셋
