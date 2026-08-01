@@ -48,7 +48,7 @@ const anthropic = new Anthropic();
 const ai = guard(anthropic.messages, { project: 'my-app', dailyCapUSD: 50 });
 
 await ai.create(
-  { model: 'claude-opus-4', max_tokens: 1024, messages: [{ role: 'user', content: 'hi' }] },
+  { model: 'claude-opus-5', max_tokens: 1024, messages: [{ role: 'user', content: 'hi' }] },
   { feature: 'summarize' },
 );
 ```

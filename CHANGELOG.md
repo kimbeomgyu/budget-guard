@@ -6,6 +6,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Anthropic price table caught up to the Claude 5 family** — added
+  `claude-fable-5` ($10/$50), `claude-opus-5` ($5/$25), `claude-sonnet-5`
+  ($3/$15 list price; intro pricing runs through 2026-08-31, so metering is
+  slightly conservative until then), plus the missing `claude-opus-4-7` /
+  `claude-opus-4-6` rows. Corrected the invalid `claude-opus-4` key to the
+  real alias `claude-opus-4-0` — until now, metering current Anthropic models
+  fell through to `onUnknownModel`. README example bumped to `claude-opus-5`.
+
 ## [0.7.0] - 2026-07-20
 
 ### Fixed
