@@ -24,7 +24,7 @@ export const PRICES: Record<
   'claude-sonnet-5': { in: 0.003, out: 0.015, cachedIn: 0.0003 },
   'claude-sonnet-4-6': { in: 0.003, out: 0.015, cachedIn: 0.0003 },
   'claude-haiku-4-5': { in: 0.001, out: 0.005, cachedIn: 0.0001 },
-  'claude-opus-4-0': { in: 0.015, out: 0.075 }, // 구 'claude-opus-4'는 무효 ID였음(별칭은 -0)
+  'claude-opus-4-0': { in: 0.015, out: 0.075, cachedIn: 0.0015 }, // 구 'claude-opus-4'는 무효 ID였음(별칭은 -0)
   // Google Gemini — thoughtsTokenCount는 candidatesTokenCount 밖 (출력 요율 가산 필요)
   'gemini-2.5-pro': { in: 0.00125, out: 0.01, cachedIn: 0.000125, reasoningInOutput: false },
   'gemini-2.5-flash': { in: 0.0003, out: 0.0025, cachedIn: 0.00003, reasoningInOutput: false },
