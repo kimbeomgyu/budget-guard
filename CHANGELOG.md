@@ -6,8 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-08-19
+
 ### Fixed
 
+- **OpenAI price table caught up to the GPT-5.6 era** — added `gpt-5.6`
+  (alias for `gpt-5.6-sol`), `gpt-5.6-sol` ($5/$30), `gpt-5.6-terra`
+  ($2/$12), `gpt-5.6-luna` ($0.20/$1.20), `gpt-5.5`, `gpt-5.4`,
+  `gpt-5.4-mini` and `gpt-5.4-nano` rows (2026-07-30 price cuts included) —
+  until now, metering current OpenAI models fell through to
+  `onUnknownModel`. Legacy `gpt-4o` / `gpt-4.1` / `o3` / `o4-mini` rows are
+  kept for old logs. README, JSDoc and examples moved off the retired
+  `gpt-4o`; example cost math rescaled to `gpt-5.6` rates.
 - **Anthropic price table caught up to the Claude 5 family** — added
   `claude-fable-5` ($10/$50), `claude-opus-5` ($5/$25), `claude-sonnet-5`
   ($3/$15 list price; intro pricing runs through 2026-08-31, so metering is
@@ -282,7 +292,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `BudgetExceededError`), per-feature cost attribution (`spendReport`), and
   auto-detection of OpenAI / Anthropic usage shapes.
 
-[Unreleased]: https://github.com/kimbeomgyu/budget-guard/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/kimbeomgyu/budget-guard/compare/v0.7.1...HEAD
+[0.7.1]: https://github.com/kimbeomgyu/budget-guard/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/kimbeomgyu/budget-guard/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/kimbeomgyu/budget-guard/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/kimbeomgyu/budget-guard/compare/v0.4.0...v0.5.0
