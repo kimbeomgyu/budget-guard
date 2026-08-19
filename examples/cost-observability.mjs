@@ -27,9 +27,9 @@ const ai = guard(fakeClient, {
   },
 });
 
-await ai.create({ model: 'gpt-4o' }, { feature: 'summarize' });
-await ai.create({ model: 'gpt-4o-mini' }, { feature: 'classify' });
-await ai.create({ model: 'gpt-4o' }, { feature: 'summarize' });
+await ai.create({ model: 'gpt-5.6' }, { feature: 'summarize' });
+await ai.create({ model: 'gpt-5.6-luna' }, { feature: 'classify' });
+await ai.create({ model: 'gpt-5.6' }, { feature: 'summarize' });
 
 // Keep the callback light: it runs synchronously right before the response is
 // returned, so push heavy work (network, disk) onto a queue rather than blocking here.

@@ -16,7 +16,7 @@ interface LlamaLLM {
 
 /**
  * LlamaIndex.TS LLM을 감싸 호출 전 하드 캡 + 호출 후 정산을 붙인다.
- *   const llm = guardLlamaIndex(openai({ model: 'gpt-4o' }), { project: 'app', dailyCapUSD: 50 });
+ *   const llm = guardLlamaIndex(openai({ model: 'gpt-5.6' }), { project: 'app', dailyCapUSD: 50 });
  *   Settings.llm = llm;  // 또는 llm.chat(...) 직접
  * 비스트리밍 chat은 guard()를 재사용(캡+계량, response.raw에서 usage).
  * 스트리밍 chat은 캡 검사 후 청크를 그대로 통과시키며, 각 청크의 raw를 3개 프로바이더

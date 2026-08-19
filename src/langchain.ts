@@ -50,7 +50,7 @@ function extractModel(output: LLMResult): string | undefined {
 /**
  * LangChain.js 콜백 핸들러. 호출 전에 하드 캡을 강제(초과 시 throw)하고, 호출 후 usage로 정산한다.
  *
- *   const handler = new BudgetGuardHandler({ project: 'app', dailyCapUSD: 50, model: 'gpt-4o' });
+ *   const handler = new BudgetGuardHandler({ project: 'app', dailyCapUSD: 50, model: 'gpt-5.6' });
  *   await model.invoke(input, { callbacks: [handler] });
  *
  * 정산은 guard()를 재사용한다(무한 캡 = 순수 계량; cost/키/onSpend 그대로).

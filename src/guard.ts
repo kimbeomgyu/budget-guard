@@ -77,7 +77,7 @@ type CreateArgs = { model: string; [k: string]: unknown };
  *
  * @example
  *   const ai = guard(openai.chat.completions, { project: 'app', dailyCapUSD: 50 });
- *   await ai.create({ model: 'gpt-4o', messages }, { feature: 'summarize' });
+ *   await ai.create({ model: 'gpt-5.6', messages }, { feature: 'summarize' });
  */
 export function guard<R extends object>(
   client: { create(args: CreateArgs): Promise<R> },
