@@ -8,7 +8,16 @@ export const PRICES: Record<
   string,
   { in: number; out: number; cachedIn?: number; retiresOn?: string; reasoningInOutput?: boolean }
 > = {
-  // OpenAI
+  // OpenAI — 현행 GPT-5.6/5.5/5.4 (2026-07-30 인하가 반영)
+  'gpt-5.6': { in: 0.005, out: 0.03, cachedIn: 0.0005 }, // 'gpt-5.6'은 gpt-5.6-sol의 별칭
+  'gpt-5.6-sol': { in: 0.005, out: 0.03, cachedIn: 0.0005 },
+  'gpt-5.6-terra': { in: 0.002, out: 0.012, cachedIn: 0.0002 },
+  'gpt-5.6-luna': { in: 0.0002, out: 0.0012, cachedIn: 0.00002 },
+  'gpt-5.5': { in: 0.005, out: 0.03, cachedIn: 0.0005 },
+  'gpt-5.4': { in: 0.0025, out: 0.015, cachedIn: 0.00025 },
+  'gpt-5.4-mini': { in: 0.00075, out: 0.0045, cachedIn: 0.000075 },
+  'gpt-5.4-nano': { in: 0.0002, out: 0.00125, cachedIn: 0.00002 },
+  // OpenAI 구세대 — 현역 명단에서 빠짐, 과거 로그 계상용으로 유지
   'gpt-4o': { in: 0.0025, out: 0.01, cachedIn: 0.00125 },
   'gpt-4o-mini': { in: 0.00015, out: 0.0006 },
   'gpt-4.1': { in: 0.002, out: 0.008, cachedIn: 0.0005 },

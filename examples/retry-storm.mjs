@@ -31,7 +31,7 @@ const ai = guard(flakyClient, {
 // Typical app-level retry loop.
 for (let i = 0; i < 10; i++) {
   try {
-    await ai.create({ model: 'gpt-4o' }, { feature: 'enrich' });
+    await ai.create({ model: 'gpt-5.6' }, { feature: 'enrich' });
     break;
   } catch {
     // backoff would go here

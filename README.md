@@ -31,7 +31,7 @@ const ai = guard(openai.chat.completions, { project: 'my-app', dailyCapUSD: 50 }
 
 // use it exactly like before — just add an optional feature tag
 const res = await ai.create(
-  { model: 'gpt-4o', messages: [{ role: 'user', content: 'hi' }] },
+  { model: 'gpt-5.6', messages: [{ role: 'user', content: 'hi' }] },
   { feature: 'chat' },
 );
 ```
@@ -136,7 +136,7 @@ Wrap any LlamaIndex LLM — the cap applies before each call and non-streaming
 ```ts
 import { guardLlamaIndex } from 'budget-guard';
 
-const llm = guardLlamaIndex(openai({ model: 'gpt-4o' }), { project: 'my-app', dailyCapUSD: 50 });
+const llm = guardLlamaIndex(openai({ model: 'gpt-5.6' }), { project: 'my-app', dailyCapUSD: 50 });
 Settings.llm = llm; // or call llm.chat(...) directly
 ```
 
@@ -154,7 +154,7 @@ before each call, and cost is metered from the response:
 ```ts
 import { BudgetGuardHandler } from 'budget-guard/langchain';
 
-const handler = new BudgetGuardHandler({ project: 'my-app', dailyCapUSD: 50, model: 'gpt-4o' });
+const handler = new BudgetGuardHandler({ project: 'my-app', dailyCapUSD: 50, model: 'gpt-5.6' });
 await model.invoke(input, { callbacks: [handler] }); // over cap → throws before the call
 ```
 
@@ -184,7 +184,7 @@ chunk, so the cost lands once, after the stream finishes:
 ```ts
 const ai = guard(openai.chat.completions, { project: 'my-app', dailyCapUSD: 50 });
 
-const stream = await ai.create({ model: 'gpt-4o', stream: true }, { feature: 'chat' });
+const stream = await ai.create({ model: 'gpt-5.6', stream: true }, { feature: 'chat' });
 for await (const chunk of stream) {
   process.stdout.write(chunk.choices[0]?.delta?.content ?? '');
 }
@@ -224,7 +224,7 @@ import { openai } from '@ai-sdk/openai';
 import { budgetGuardMiddleware } from 'budget-guard';
 
 const model = wrapLanguageModel({
-  model: openai('gpt-4o'),
+  model: openai('gpt-5.6'),
   middleware: budgetGuardMiddleware({ project: 'my-app', dailyCapUSD: 50, feature: 'chat' }),
 });
 
@@ -247,7 +247,7 @@ import { Agent } from '@mastra/core/agent';
 import { budgetGuardMiddleware } from 'budget-guard';
 
 const model = wrapLanguageModel({
-  model: openai('gpt-4o'),
+  model: openai('gpt-5.6'),
   middleware: budgetGuardMiddleware({ project: 'my-app', dailyCapUSD: 50 }),
 });
 

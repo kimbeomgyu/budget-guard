@@ -15,16 +15,16 @@ import { fileStore } from 'budget-guard/file';
 // In a real cron job use a fixed path, e.g. '/var/tmp/my-job-spend.json'.
 // This demo simulates "3 separate runs" in one process by re-creating the store.
 const path = join(mkdtempSync(join(tmpdir(), 'bg-demo-')), 'spend.json');
-const fakeClient = { create: async () => ({ usage: { input: 1000, output: 1000 } }) }; // ~$0.0125
+const fakeClient = { create: async () => ({ usage: { input: 1000, output: 1000 } }) }; // ~$0.035
 
 for (let run = 1; run <= 3; run++) {
   const ai = guard(fakeClient, {
     project: 'nightly-job',
-    dailyCapUSD: 0.02, // two calls fit, the third doesn't
+    dailyCapUSD: 0.05, // two calls fit, the third doesn't
     store: fileStore(path), // fresh instance = fresh process, same file
   });
   try {
-    await ai.create({ model: 'gpt-4o' });
+    await ai.create({ model: 'gpt-5.6' });
     console.log(`run ${run}: spent (total persisted in ${path})`);
   } catch (e) {
     if (!(e instanceof BudgetExceededError)) throw e;

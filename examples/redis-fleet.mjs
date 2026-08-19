@@ -54,7 +54,7 @@ const workers = [1, 2, 3].map((id) => {
     { create: async () => ({ usage: { input: 1000, output: 1000 } }) },
     { project: 'fleet', dailyCapUSD: 0.05, store },
   );
-  return { id, call: () => ai.create({ model: 'gpt-4o' }, { feature: `worker-${id}` }) };
+  return { id, call: () => ai.create({ model: 'gpt-5.6' }, { feature: `worker-${id}` }) };
 });
 
 // Round-robin calls across the fleet until the *shared* cap ($0.05) trips.

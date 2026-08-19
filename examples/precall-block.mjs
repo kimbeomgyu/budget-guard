@@ -8,7 +8,7 @@
 
 import { BudgetExceededError, estimator, guard, MemoryStore } from 'budget-guard';
 
-// Fake provider: each call actually costs ~$0.10 (gpt-4o, 10k output tokens).
+// Fake provider: each call actually costs ~$0.30 (gpt-5.6, 10k output tokens).
 const fakeClient = {
   calls: 0,
   async create() {
@@ -20,15 +20,15 @@ const fakeClient = {
 
 const ai = guard(fakeClient, {
   project: 'concurrent-demo',
-  dailyCapUSD: 0.5, // fits 4 estimated calls (each estimate is a hair over $0.10 — prompt tokens count too)
+  dailyCapUSD: 1.25, // fits 4 estimated calls (each estimate is a hair over $0.30 — prompt tokens count too)
   store: new MemoryStore(),
   estimateUsage: estimator(), // chars/4 heuristic + declared max_tokens
 });
 
-// 20 concurrent calls, each estimating ~$0.10 via max_tokens.
+// 20 concurrent calls, each estimating ~$0.30 via max_tokens.
 const results = await Promise.allSettled(
   Array.from({ length: 20 }, () =>
-    ai.create({ model: 'gpt-4o', prompt: 'hi', max_tokens: 10_000 }),
+    ai.create({ model: 'gpt-5.6', prompt: 'hi', max_tokens: 10_000 }),
   ),
 );
 
