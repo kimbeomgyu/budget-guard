@@ -38,6 +38,8 @@ const res = await ai.create(
 
 If today's spend for `my-app` is already past `$50`, the **next call throws `BudgetExceededError` before it bills**. No more 3am surprise invoices.
 
+That check runs against spend already *settled*, so calls still in flight aren't counted yet. If you fan calls out in parallel, add an estimator to make the cap hold — see [Block *before* the call](#block-before-the-call-no-overshoot).
+
 ## Use it (Anthropic)
 
 ```ts
@@ -107,7 +109,9 @@ Writes are atomic (temp file + rename), parent directories are created, and a co
 
 ## Block *before* the call (no overshoot)
 
-By default the cap is enforced on the **next** call after you cross it, so one call can overshoot. Give it an estimator and it blocks the offending call itself — the built-in one is a one-liner:
+By default the cap is enforced on the **next** call after you cross it. Run calls one at a time and that costs you exactly one call of overshoot. Run them in parallel and it costs you every call already in flight: they all read the same under-cap balance and all go through — 100 concurrent `$0.10` calls against a `$5` cap settle at `$10`, not `$5`.
+
+Give it an estimator and it blocks the offending call itself — the built-in one is a one-liner:
 
 ```ts
 import { guard, estimator } from 'budget-guard';
@@ -126,7 +130,7 @@ import { countTokens } from 'gpt-tokenizer';
 estimateUsage: estimator({ countTokens });
 ```
 
-**Concurrency-safe:** when the store supports it (built-in memory, file and redis stores all do), the estimated cost is **reserved atomically before the call** and settled to the actual cost after — so 100 parallel workers can't race past the cap together. Failed calls roll their reservation back.
+**Concurrency-safe — with the estimator.** The reservation path needs all three of: `estimateUsage`, a store with `addIfUnder` (the built-in memory, file and redis stores all have it), and the default `onCap: 'block'`. Given those, the estimated cost is **reserved atomically before the call** and settled to the actual cost afterwards — so 100 parallel workers can't race past the cap together, and failed calls roll their reservation back. Drop any one of the three and you fall back to the unreserved check above, which makes no promise under concurrency.
 
 ## LlamaIndex.TS
 
