@@ -23,6 +23,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `gemini-4-argon` until 2026-12-01, `gemini-3.8/3.6-flash` until
   2027-01-01) are metered at the list price they revert to, so caps stay
   conservative.
+- **Anthropic prompt caching was under-metered** — Anthropic's `input_tokens`
+  excludes cache reads and writes, but `normalizeUsage` treated it as the
+  total, so the uncached part was dropped whenever cache reads exceeded it and
+  cache writes were never billed. Example: 10 fresh + 50K cache-read + 2K
+  cache-write tokens on `claude-opus-5-5` metered $0.012 instead of $0.022.
+  Total input is now `input_tokens + cache_read + cache_creation`, and writes
+  carry their premium via new `Usage.cacheWrite` (1.25×) / `Usage.cacheWrite1h`
+  (2×). Applies to non-streaming, `provider: 'anthropic'` streaming,
+  `guardAnthropic` and the LlamaIndex wrapper. OpenAI Responses API usage
+  (whose `input_tokens` already includes cache) is unchanged.
 
 ### Added
 
