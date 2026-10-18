@@ -31,6 +31,13 @@ describe('cost()', () => {
     );
   });
 
+  it('캐시 쓰기는 5분 TTL 1.25×, 1시간 TTL 2× in 요율 (input에 포함된 토큰 기준)', () => {
+    // claude-sonnet-4-6 in 0.003: 쓰기 1000(그중 1h 400) → 600×1.25 + 400×2 = 1550 토큰분
+    expect(
+      cost('claude-sonnet-4-6', { input: 1000, output: 0, cacheWrite: 1000, cacheWrite1h: 400 }),
+    ).toBeCloseTo((1550 / 1000) * 0.003, 10);
+  });
+
   it('cachedIn 요율이 없으면 캐시분도 in 요율로 과금한다', () => {
     // anthropic.claude-sonnet-4: cachedIn 없음 → cached도 in(0.003)
     expect(

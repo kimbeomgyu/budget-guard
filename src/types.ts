@@ -2,10 +2,15 @@ import type { SpendStore } from './store.js';
 
 /** 한 번의 LLM 호출이 쓴 토큰 수. 제공자가 응답의 usage로 알려준다. */
 export interface Usage {
+  /** 입력 토큰 총합 — 캐시 읽기·쓰기 분량 포함. */
   input: number;
   output: number;
   /** (선택) 입력 중 캐시된 토큰 수 — 보통 할인 요율로 과금됨. */
   cachedInput?: number;
+  /** (선택) 입력 중 캐시에 새로 쓴 토큰 수 — Anthropic은 in 요율의 1.25×(5분 TTL) 과금. */
+  cacheWrite?: number;
+  /** (선택) cacheWrite 중 1시간 TTL 분량 — in 요율의 2× 과금. */
+  cacheWrite1h?: number;
   /** (선택) 추론(thinking) 토큰 수 — 보통 출력 요율로 과금됨. */
   reasoning?: number;
 }

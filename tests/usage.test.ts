@@ -31,10 +31,29 @@ describe('normalizeUsage()', () => {
     ).toEqual({ input: 100, output: 50, cachedInput: 80, reasoning: 20 });
   });
 
-  it('Anthropic cache_read_input_tokens를 cachedInput으로 추출한다', () => {
+  it('Anthropic: input_tokens는 캐시 제외분 — 총 입력 = input + 캐시 읽기 + 캐시 쓰기', () => {
     expect(
       normalizeUsage({ input_tokens: 100, output_tokens: 50, cache_read_input_tokens: 30 }),
-    ).toEqual({ input: 100, output: 50, cachedInput: 30 });
+    ).toEqual({ input: 130, output: 50, cachedInput: 30 });
+    expect(
+      normalizeUsage({
+        input_tokens: 10,
+        output_tokens: 5,
+        cache_read_input_tokens: 0,
+        cache_creation_input_tokens: 1000,
+        cache_creation: { ephemeral_5m_input_tokens: 600, ephemeral_1h_input_tokens: 400 },
+      }),
+    ).toEqual({ input: 1010, output: 5, cachedInput: 0, cacheWrite: 1000, cacheWrite1h: 400 });
+  });
+
+  it('Responses API input_tokens(캐시 포함 총합)는 그대로 둔다', () => {
+    expect(
+      normalizeUsage({
+        input_tokens: 100,
+        output_tokens: 5,
+        input_tokens_details: { cached_tokens: 80 },
+      }),
+    ).toEqual({ input: 100, output: 5, cachedInput: 80 });
   });
 
   it('Gemini usageMetadata를 정규화한다 (cachedContent→cachedInput, thoughts→reasoning)', () => {

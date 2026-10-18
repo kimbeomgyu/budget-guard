@@ -120,10 +120,35 @@ describe('guard() streaming', () => {
     const stream = await ai.create({ model: 'claude-sonnet-4-6', stream: true }, { feature: 'c' });
     await drain(stream as AsyncIterable<unknown>);
     const rep = await spendReport('ant', '2026-06-28', s);
+    // input_tokens 50은 캐시 제외분 → 총 입력 250 중 200이 캐시 읽기
     expect(rep.c).toBeCloseTo(
-      cost('claude-sonnet-4-6', { input: 50, output: 30, cachedInput: 200 }),
+      cost('claude-sonnet-4-6', { input: 250, output: 30, cachedInput: 200 }),
       10,
     );
+  });
+
+  it('Anthropic 스트리밍의 캐시 쓰기 토큰도 할증 요율로 잡는다', async () => {
+    const chunks = [
+      {
+        type: 'message_start',
+        message: {
+          usage: { input_tokens: 10, cache_creation_input_tokens: 1000, output_tokens: 1 },
+        },
+      },
+      { type: 'message_delta', usage: { output_tokens: 20 } },
+    ];
+    const s = new MemoryStore();
+    const { client } = fakeStreamClient(chunks);
+    const ai = guard(
+      client,
+      { project: 'ant', dailyCapUSD: 99, store: s, provider: 'anthropic' },
+      { now: fixedNow },
+    );
+    const stream = await ai.create({ model: 'claude-sonnet-4-6', stream: true }, { feature: 'w' });
+    await drain(stream as AsyncIterable<unknown>);
+    const rep = await spendReport('ant', '2026-06-28', s);
+    // sonnet-4-6 $3/$15: 10 in + 1000 쓰기×1.25 + 20 out
+    expect(rep.w).toBeCloseTo((10 * 0.003 + 1000 * 0.003 * 1.25 + 20 * 0.015) / 1000, 10);
   });
 
   it('Gemini 스트리밍: 마지막 usageMetadata(누적 총합)로 1회 정산한다', async () => {
