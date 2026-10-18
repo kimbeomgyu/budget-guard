@@ -17,8 +17,11 @@ export class UnknownModelError extends Error {
  * cachedInput이 있으면 그 부분은 cachedIn 요율(없으면 in)로, 나머지 입력은 in 요율로 과금한다.
  */
 export function cost(model: string, usage: Usage): number {
-  const p = PRICES[model] ?? PRICES[model.replace(REGION_PREFIX, '')];
-  if (!p) throw new UnknownModelError(model);
+  const base = PRICES[model] ?? PRICES[model.replace(REGION_PREFIX, '')];
+  if (!base) throw new UnknownModelError(model);
+  // 긴 프롬프트 구간제: 입력이 문턱을 넘으면 그 요청 전체(입력·캐시·출력)가 상위 요율.
+  const lc = base.longContext;
+  const p = lc && usage.input > lc.above ? { ...base, ...lc } : base;
   const cached = usage.cachedInput ?? 0;
   const uncachedInput = Math.max(0, usage.input - cached);
   const cachedRate = p.cachedIn ?? p.in;

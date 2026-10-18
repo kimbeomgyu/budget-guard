@@ -6,6 +6,33 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **Price table caught up to October 2026** — current models no longer fall
+  through to `UnknownModelError`. Anthropic: `claude-fable-5-1` /
+  `claude-mythos-5-1` ($10/$50, cache reads $0.25), `claude-opus-5-5`
+  ($4/$20), `claude-sonnet-5-5` ($2/$10), `claude-haiku-5-5` ($0.10/$0.50),
+  plus `claude-mythos-5`, `claude-opus-4-5`, `claude-sonnet-4-5`.
+  `claude-sonnet-5` drops to $2/$10 — the intro price became the standard
+  price. OpenAI: `gpt-6-astra`, `gpt-6.1-sol`, `gpt-6-sol`, `gpt-6-luna`,
+  `gpt-5.4-pro`; cached-input rates for `o3` / `o4-mini`. Gemini:
+  `gemini-4-argon`, `gemini-3.8-flash`, `gemini-3.6-flash`,
+  `gemini-3.1-pro-preview`, `gemini-3-flash-preview`,
+  `gemini-3.5-flash-lite`, `gemini-3.1-flash-lite`, `gemini-2.5-flash-lite`.
+  Promo / intro prices (`gpt-5.6-sol` through at least 2026-11-21,
+  `gemini-4-argon` until 2026-12-01, `gemini-3.8/3.6-flash` until
+  2027-01-01) are metered at the list price they revert to, so caps stay
+  conservative.
+
+### Added
+
+- **Long-context price tiers** — `Price.longContext: { above, in, out, cachedIn? }`.
+  When a request's input (including cached tokens) exceeds `above`, the whole
+  request is billed at the higher rates, matching how providers bill it:
+  OpenAI >272K (GPT-6 / 5.6 / 5.5 / 5.4), Gemini >200K (3.1 Pro, 2.5 Pro),
+  Claude Haiku 5.5 >100K. Previously long prompts on these models were
+  under-metered by up to 5×. `definePrice()` accepts the same field.
+
 ## [0.7.1] - 2026-08-19
 
 ### Fixed

@@ -67,4 +67,39 @@ describe('cost()', () => {
       expect(cost('grok-4.3', { input: 1000, output: 1000 })).toBeCloseTo(0.00125 + 0.0025, 8);
     });
   });
+
+  describe('longContext 구간제', () => {
+    it('문턱 이하는 기본 요율, 초과하면 요청 전체(입력·캐시·출력)가 상위 요율', () => {
+      // claude-haiku-5-5: ≤100K $0.10/$0.50(캐시 $0.01), >100K $0.50/$2.50(캐시 $0.05) per MTok
+      expect(cost('claude-haiku-5-5', { input: 100_000, output: 1000 })).toBeCloseTo(
+        0.01 + 0.0005,
+        8,
+      );
+      expect(
+        cost('claude-haiku-5-5', { input: 100_001, output: 1000, cachedInput: 50_001 }),
+      ).toBeCloseTo((50_000 / 1000) * 0.0005 + (50_001 / 1000) * 0.00005 + 0.0025, 8);
+    });
+
+    it('OpenAI 272K 문턱 — gpt-5.4 장문은 입력 2×·출력 1.5×', () => {
+      const u = { input: 300_000, output: 1000 };
+      expect(cost('gpt-5.4', u)).toBeCloseTo(300 * 0.005 + 0.0225, 8);
+    });
+  });
+
+  it('2026-10 현행 모델 ID가 전부 가격표에 있다', () => {
+    for (const m of [
+      'claude-fable-5-1',
+      'claude-opus-5-5',
+      'claude-sonnet-5-5',
+      'claude-haiku-5-5',
+      'gpt-6-astra',
+      'gpt-6.1-sol',
+      'gpt-6-luna',
+      'gemini-4-argon',
+      'gemini-3.8-flash',
+      'gemini-3.1-pro-preview',
+    ]) {
+      expect(() => cost(m, { input: 1, output: 1 }), m).not.toThrow();
+    }
+  });
 });
