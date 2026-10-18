@@ -381,7 +381,7 @@ Runnable, no API key needed — see [`examples/`](./examples):
 - **Zero runtime dependencies.** Adapters use structural typing or optional peer deps; the tokenizer for `estimator()` is bring-your-own.
 - **Never silently zero.** Unknown usage shapes and corrupted spend files throw by default (`onMissingUsage: 'zero'` opts out per guard) — a budget tool shouldn't quietly stop counting.
 - The Redis Lua reservation path is integration-tested against a real Redis in CI (atomicity, TTL, `NOSCRIPT` fallback).
-- Prices live in `PRICES` (USD per 1K tokens, incl. per-class cache rates and the per-provider reasoning-token convention) — PRs to keep them current are welcome.
+- Prices live in `PRICES` (USD per 1K tokens, incl. per-class cache rates, long-context tiers and the per-provider reasoning-token convention) — PRs to keep them current are welcome.
 - See [ROADMAP.md](./ROADMAP.md) for what's next (hosted dashboard is the only major thing left).
 
 ## Migrating from 0.1

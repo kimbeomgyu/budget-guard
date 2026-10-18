@@ -13,6 +13,7 @@ type RawUsage = Record<string, unknown> & {
   completion_tokens_details?: { reasoning_tokens?: number };
   input_tokens_details?: { cached_tokens?: number };
   output_tokens_details?: { reasoning_tokens?: number };
+  cache_creation?: { ephemeral_1h_input_tokens?: number };
   billed_units?: { input_tokens?: number; output_tokens?: number };
 };
 
@@ -48,6 +49,23 @@ export function normalizeUsage(raw: unknown): Usage {
   }
   // Anthropic + Azure Responses API (input_tokens / output_tokens)
   if (typeof u.input_tokens === 'number') {
+    // Anthropic의 input_tokens는 캐시 읽기·쓰기를 뺀 나머지 — 총 입력 = 셋의 합.
+    // (Responses API의 input_tokens는 이미 캐시 포함 총합이고 이 필드들이 없다.)
+    const read = num(u.cache_read_input_tokens);
+    const write = num(u.cache_creation_input_tokens);
+    if (read !== undefined || write !== undefined) {
+      const usage: Usage = {
+        input: u.input_tokens + (read ?? 0) + (write ?? 0),
+        output: num(u.output_tokens) ?? 0,
+      };
+      if (read !== undefined) usage.cachedInput = read;
+      if (write) {
+        usage.cacheWrite = write;
+        const w1h = num(u.cache_creation?.ephemeral_1h_input_tokens);
+        if (w1h) usage.cacheWrite1h = w1h;
+      }
+      return usage;
+    }
     return withExtras(
       { input: u.input_tokens, output: num(u.output_tokens) ?? 0 },
       num(u.cache_read_input_tokens) ?? num(u.input_tokens_details?.cached_tokens),

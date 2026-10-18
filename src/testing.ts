@@ -23,6 +23,7 @@ export function buildAnthropicUsage(
     input_tokens: number;
     output_tokens: number;
     cache_read_input_tokens: number;
+    cache_creation_input_tokens: number;
   }> = {},
 ) {
   return { input_tokens: 0, output_tokens: 0, ...overrides };

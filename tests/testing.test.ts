@@ -18,7 +18,7 @@ describe('budget-guard/testing', () => {
     });
     expect(
       normalizeUsage(buildAnthropicUsage({ input_tokens: 7, cache_read_input_tokens: 3 })),
-    ).toEqual({ input: 7, output: 0, cachedInput: 3 });
+    ).toEqual({ input: 10, output: 0, cachedInput: 3 });
   });
 
   it('createFixedClock: 키 생성이 결정적이 된다 (일 경계 테스트)', async () => {

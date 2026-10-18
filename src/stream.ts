@@ -60,14 +60,13 @@ function geminiStreamReader(): StreamUsageReader {
 
 /**
  * Anthropic: usage가 이벤트에 나눠 실린다.
- * - message_start.message.usage → input + 캐시(cache_read)
+ * - message_start.message.usage → 입력 + 캐시 읽기·쓰기 (비스트리밍과 같은 normalizeUsage로 해석)
  * - message_delta.usage.output_tokens → 누적 output (더하지 말고 '교체')
  */
 function anthropicStreamReader(): StreamUsageReader {
   let seen = false;
-  let input = 0;
+  let start: Usage = { input: 0, output: 0 };
   let output = 0;
-  let cachedInput: number | undefined;
   return {
     observe(chunk) {
       const c = chunk as {
@@ -79,20 +78,15 @@ function anthropicStreamReader(): StreamUsageReader {
       if (c.type === 'message_start' && c.message?.usage) {
         seen = true;
         const u = c.message.usage;
-        input = num(u.input_tokens);
-        const cacheRead = num(u.cache_read_input_tokens);
-        if (cacheRead > 0) cachedInput = cacheRead;
-        if (u.output_tokens != null) output = num(u.output_tokens);
+        start = normalizeUsage({ ...u, input_tokens: num(u.input_tokens) });
+        output = start.output;
       } else if (c.type === 'message_delta' && c.usage?.output_tokens != null) {
         seen = true;
         output = num(c.usage.output_tokens); // 누적값 → 교체
       }
     },
     result() {
-      if (!seen) return null;
-      const usage: Usage = { input, output };
-      if (cachedInput != null) usage.cachedInput = cachedInput;
-      return usage;
+      return seen ? { ...start, output } : null;
     },
   };
 }
