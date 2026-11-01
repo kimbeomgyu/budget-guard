@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.3] - 2026-11-01
+
 ### Fixed
 
 - **DeepSeek was under-metered** — `deepseek-v4-flash` was still on its old
@@ -359,7 +361,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `BudgetExceededError`), per-feature cost attribution (`spendReport`), and
   auto-detection of OpenAI / Anthropic usage shapes.
 
-[Unreleased]: https://github.com/kimbeomgyu/budget-guard/compare/v0.7.2...HEAD
+[Unreleased]: https://github.com/kimbeomgyu/budget-guard/compare/v0.7.3...HEAD
+[0.7.3]: https://github.com/kimbeomgyu/budget-guard/compare/v0.7.2...v0.7.3
 [0.7.2]: https://github.com/kimbeomgyu/budget-guard/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/kimbeomgyu/budget-guard/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/kimbeomgyu/budget-guard/compare/v0.6.0...v0.7.0
