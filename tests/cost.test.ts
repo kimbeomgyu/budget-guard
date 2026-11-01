@@ -91,9 +91,41 @@ describe('cost()', () => {
       const u = { input: 300_000, output: 1000 };
       expect(cost('gpt-5.4', u)).toBeCloseTo(300 * 0.005 + 0.0225, 8);
     });
+
+    it('gpt-6.1-terra: 기본 $1/$5, 272K 초과 $2/$7.50 per MTok', () => {
+      expect(cost('gpt-6.1-terra', { input: 1000, output: 1000 })).toBeCloseTo(0.001 + 0.005, 8);
+      expect(cost('gpt-6.1-terra', { input: 300_000, output: 1000 })).toBeCloseTo(
+        300 * 0.002 + 0.0075,
+        8,
+      );
+    });
+
+    it('xAI는 200K에 "도달"하면 상위 요율 — 정확히 200,000토큰부터 2배', () => {
+      expect(cost('grok-4.3', { input: 199_999, output: 0 })).toBeCloseTo(199.999 * 0.00125, 8);
+      expect(cost('grok-4.3', { input: 200_000, output: 0 })).toBeCloseTo(200 * 0.0025, 8);
+      expect(cost('grok-4.7', { input: 200_000, output: 1000 })).toBeCloseTo(
+        200 * 0.004 + 0.012,
+        8,
+      );
+    });
   });
 
-  it('2026-10 현행 모델 ID가 전부 가격표에 있다', () => {
+  describe('DeepSeek — 피크·오프피크 중 피크 요율로 계상', () => {
+    it('deepseek-flash: $0.30/$1.20, 캐시 $0.006 per MTok', () => {
+      expect(cost('deepseek-flash', { input: 1000, output: 1000 })).toBeCloseTo(0.0015, 8);
+      expect(cost('deepseek-flash', { input: 1000, output: 0, cachedInput: 1000 })).toBeCloseTo(
+        0.000006,
+        10,
+      );
+    });
+
+    it('옛 이름 deepseek-v4-flash는 Flash 가격으로 청구되므로 같은 요율', () => {
+      const u = { input: 1000, output: 1000 };
+      expect(cost('deepseek-v4-flash', u)).toBeCloseTo(cost('deepseek-flash', u), 10);
+    });
+  });
+
+  it('2026-11 현행 모델 ID가 전부 가격표에 있다', () => {
     for (const m of [
       'claude-fable-5-1',
       'claude-opus-5-5',
@@ -101,10 +133,22 @@ describe('cost()', () => {
       'claude-haiku-5-5',
       'gpt-6-astra',
       'gpt-6.1-sol',
+      'gpt-6.1-terra',
       'gpt-6-luna',
+      'gpt-5.5-pro',
+      'gpt-5.2',
+      'gpt-5.1',
+      'gpt-5',
+      'gpt-5-mini',
+      'gpt-5-nano',
       'gemini-4-argon',
       'gemini-3.8-flash',
       'gemini-3.1-pro-preview',
+      'grok-4.7',
+      'grok-4.6',
+      'grok-4.5',
+      'deepseek-flash',
+      'deepseek-v4-pro',
     ]) {
       expect(() => cost(m, { input: 1, output: 1 }), m).not.toThrow();
     }
