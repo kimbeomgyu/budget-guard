@@ -6,6 +6,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **DeepSeek was under-metered** — `deepseek-v4-flash` was still on its old
+  $0.14/$0.28 rate; DeepSeek now bills that legacy name at the Flash price
+  ($0.30/$1.20 at peak, half that off-peak). Rows are metered at the peak rate
+  because `cost()` does not know the time of the call, so caps stay
+  conservative.
+- **Grok long prompts were under-metered** — `grok-4.3` now doubles once a
+  prompt reaches 200K tokens, as xAI bills it.
+- `gpt-4o-mini` now uses its $0.075 cached-input rate instead of the full input
+  rate.
+
+### Added
+
+- Price rows for models that fell through to `UnknownModelError`:
+  `gpt-6.1-terra`, `gpt-5.5-pro`, `gpt-5.2`, `gpt-5.1`, `gpt-5`, `gpt-5-mini`,
+  `gpt-5-nano`, `grok-4.7`, `grok-4.6`, `grok-4.5`, `deepseek-flash`,
+  `deepseek-v4-pro`.
+- `retiresOn` dates from the providers' deprecation pages: `claude-sonnet-4-5`,
+  `claude-opus-4-0`, `gpt-5`, `gpt-5.1`, `gpt-5.4-nano`, `o3`, `o4-mini`.
+
+### Changed
+
+- Dev dependencies (no effect on installs): Biome 2.6.3 (Markdown excluded from
+  `biome check`, since 2.6 started formatting it), vitest 5.0.5, vite 8.3.5,
+  `@langchain/core` 1.3.2, and a patched `zod`. Clears the open Dependabot
+  alerts.
+
 ## [0.7.2] - 2026-10-19
 
 ### Fixed
