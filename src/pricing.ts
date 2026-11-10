@@ -16,7 +16,7 @@ export type Price = {
 
 // 인트로가·프로모가는 정식가(인상 후 가격)로 계상한다 — 캡 도구라 과대계상이 안전.
 export const PRICES: Record<string, Price> = {
-  // OpenAI — GPT-6 / 5.6 / 5.5 / 5.4 (2026-11-01 공식 가격표). 입력 272K 초과 시 longContext 요율.
+  // OpenAI — GPT-6 / 5.6 / 5.5 / 5.4 (2026-11-11 공식 가격표). 입력 272K 초과 시 longContext 요율.
   'gpt-6-astra': {
     in: 0.01,
     out: 0.05,
@@ -47,7 +47,7 @@ export const PRICES: Record<string, Price> = {
     cachedIn: 0.00001,
     longContext: { above: 272_000, in: 0.0002, out: 0.00075, cachedIn: 0.00002 },
   },
-  // gpt-5.6-sol은 최소 2026-11-21까지 프로모가($4/$20) — 정식가($5/$30)로 계상. 'gpt-5.6'은 sol 별칭.
+  // gpt-5.6-sol은 2026-11-30까지 프로모가($4/$20) — 정식가($5/$30)로 계상. 'gpt-5.6'은 sol 별칭.
   'gpt-5.6': {
     in: 0.005,
     out: 0.03,
@@ -88,18 +88,25 @@ export const PRICES: Record<string, Price> = {
   'gpt-5.4-pro': { in: 0.03, out: 0.18, longContext: { above: 272_000, in: 0.06, out: 0.27 } },
   'gpt-5.4-mini': { in: 0.00075, out: 0.0045, cachedIn: 0.000075 },
   'gpt-5.4-nano': { in: 0.0002, out: 0.00125, cachedIn: 0.00002, retiresOn: '2027-04-01' },
+  'gpt-5.3-codex': { in: 0.00175, out: 0.014, cachedIn: 0.000175, retiresOn: '2027-04-01' },
   'gpt-5.2': { in: 0.00175, out: 0.014, cachedIn: 0.000175 },
+  'gpt-5.2-pro': { in: 0.021, out: 0.168 },
   'gpt-5.1': { in: 0.00125, out: 0.01, cachedIn: 0.000125, retiresOn: '2027-04-01' },
   'gpt-5': { in: 0.00125, out: 0.01, cachedIn: 0.000125, retiresOn: '2026-12-11' },
-  'gpt-5-mini': { in: 0.00025, out: 0.002, cachedIn: 0.000025 },
-  'gpt-5-nano': { in: 0.00005, out: 0.0004, cachedIn: 0.000005 },
-  // OpenAI 구세대 — 현역 명단에서 빠짐, 과거 로그 계상용으로 유지
-  'gpt-4o': { in: 0.0025, out: 0.01, cachedIn: 0.00125 },
-  'gpt-4o-mini': { in: 0.00015, out: 0.0006, cachedIn: 0.000075 },
-  'gpt-4.1': { in: 0.002, out: 0.008, cachedIn: 0.0005 },
+  'gpt-5-mini': { in: 0.00025, out: 0.002, cachedIn: 0.000025, retiresOn: '2026-12-11' },
+  'gpt-5-nano': { in: 0.00005, out: 0.0004, cachedIn: 0.000005, retiresOn: '2026-12-11' },
+  'gpt-5-pro': { in: 0.015, out: 0.12, retiresOn: '2026-12-11' },
+  // OpenAI 구세대 — GPT-4o·4.1 계열은 2027-01-14, o3 계열은 2026-12-11 종료
+  'gpt-4o': { in: 0.0025, out: 0.01, cachedIn: 0.00125, retiresOn: '2027-01-14' },
+  'gpt-4o-mini': { in: 0.00015, out: 0.0006, cachedIn: 0.000075, retiresOn: '2027-01-14' },
+  'gpt-4.1': { in: 0.002, out: 0.008, cachedIn: 0.0005, retiresOn: '2027-01-14' },
+  'gpt-4.1-mini': { in: 0.0004, out: 0.0016, cachedIn: 0.0001, retiresOn: '2027-01-14' },
   o3: { in: 0.002, out: 0.008, cachedIn: 0.0005, retiresOn: '2026-12-11' },
+  'o3-pro': { in: 0.02, out: 0.08, retiresOn: '2026-12-11' },
   'o4-mini': { in: 0.0011, out: 0.0044, cachedIn: 0.000275, retiresOn: '2026-10-23' },
   // Anthropic — 키는 API 별칭 ID (응답 model 필드가 별칭인 현행 모델 기준)
+  'claude-fable-5-2': { in: 0.008, out: 0.04, cachedIn: 0.0002 },
+  'claude-mythos-5-2': { in: 0.008, out: 0.04, cachedIn: 0.0002 },
   'claude-fable-5-1': { in: 0.01, out: 0.05, cachedIn: 0.00025 },
   'claude-mythos-5-1': { in: 0.01, out: 0.05, cachedIn: 0.00025 },
   'claude-fable-5': { in: 0.01, out: 0.05, cachedIn: 0.001 },
@@ -126,7 +133,8 @@ export const PRICES: Record<string, Price> = {
   // 구 'claude-opus-4'는 무효 ID였음(별칭은 -0)
   'claude-opus-4-0': { in: 0.015, out: 0.075, cachedIn: 0.0015, retiresOn: '2026-06-15' },
   // Google Gemini — thoughtsTokenCount는 candidatesTokenCount 밖 (출력 요율 가산 필요). 텍스트 요율 기준.
-  // gemini-4-argon은 2026-12-01, 3.8/3.6-flash는 2027-01-01 인상 예정 — 인상가로 계상.
+  // gemini-4-carbon/argon은 2026-12-01, 3.8/3.6-flash는 2027-01-01 인상 예정 — 인상가로 계상.
+  'gemini-4-carbon': { in: 0.004, out: 0.02, cachedIn: 0.0002, reasoningInOutput: false },
   'gemini-4-argon': { in: 0.004, out: 0.02, cachedIn: 0.0002, reasoningInOutput: false },
   'gemini-3.8-flash': { in: 0.0015, out: 0.0075, cachedIn: 0.00015, reasoningInOutput: false },
   'gemini-3.6-flash': { in: 0.0015, out: 0.0075, cachedIn: 0.00015, reasoningInOutput: false },
@@ -151,24 +159,35 @@ export const PRICES: Record<string, Price> = {
     out: 0.0015,
     cachedIn: 0.000025,
     reasoningInOutput: false,
+    retiresOn: '2027-05-07',
   },
+  // 2.5-pro는 2026-12-01부터 3.8-flash 요율로 청구된다(2.5-flash는 3.5-flash-lite 요율 = 지금과 같음).
+  // 3.8-flash 인상가의 입력($1.50)이 지금 입력($1.25)보다 비싸서, 항목마다 둘 중 높은 쪽으로 계상.
   'gemini-2.5-pro': {
-    in: 0.00125,
+    in: 0.0015,
     out: 0.01,
-    cachedIn: 0.000125,
+    cachedIn: 0.00015,
     reasoningInOutput: false,
+    retiresOn: '2026-12-01',
     longContext: { above: 200_000, in: 0.0025, out: 0.015, cachedIn: 0.00025 },
   },
-  'gemini-2.5-flash': { in: 0.0003, out: 0.0025, cachedIn: 0.00003, reasoningInOutput: false },
+  'gemini-2.5-flash': {
+    in: 0.0003,
+    out: 0.0025,
+    cachedIn: 0.00003,
+    reasoningInOutput: false,
+    retiresOn: '2026-12-01',
+  },
   'gemini-2.5-flash-lite': { in: 0.0001, out: 0.0004, cachedIn: 0.00001, reasoningInOutput: false },
   'gemini-2.0-flash': { in: 0.0001, out: 0.0004, retiresOn: '2026-06-01' },
   // DeepSeek — 오프피크는 피크의 절반. 호출 시각을 안 보므로 피크 요율로 계상(과대계상이 안전).
-  // 옛 이름 deepseek-v4-flash는 아직 받아주지만 Flash 가격으로 청구된다.
+  // 옛 이름 deepseek-v4-flash(-vision-exp)는 아직 받아주지만 Flash 가격으로 청구된다.
   'deepseek-flash': { in: 0.0003, out: 0.0012, cachedIn: 0.000006 },
   'deepseek-v4-flash': { in: 0.0003, out: 0.0012, cachedIn: 0.000006 },
+  'deepseek-v4-flash-vision-exp': { in: 0.0003, out: 0.0012, cachedIn: 0.000006 },
   'deepseek-v4-pro': { in: 0.00132, out: 0.00396, cachedIn: 0.000044 },
-  // xAI — Grok은 reasoning이 completion_tokens에서 제외됨. 프롬프트가 200K에 "도달"하면 전체가
-  // 상위 요율이고 cost()는 above를 "초과"로 판정하므로 문턱은 199,999.
+  // xAI — Grok은 reasoning이 completion_tokens에서 제외됨(공식 문서 예시: 32 + 9 + reasoning 110 = 151).
+  // 프롬프트가 200K에 "도달"하면 전체가 상위 요율이고 cost()는 above를 "초과"로 판정하므로 문턱은 199,999.
   'grok-4.7': {
     in: 0.002,
     out: 0.006,
@@ -197,7 +216,36 @@ export const PRICES: Record<string, Price> = {
     reasoningInOutput: false,
     longContext: { above: 199_999, in: 0.0025, out: 0.005, cachedIn: 0.0004 },
   },
-  // AWS Bedrock (region prefixes like `us.`/`eu.` are stripped during lookup)
+  'grok-4.20-0309-reasoning': {
+    in: 0.00125,
+    out: 0.0025,
+    cachedIn: 0.0002,
+    reasoningInOutput: false,
+    longContext: { above: 199_999, in: 0.0025, out: 0.005, cachedIn: 0.0004 },
+  },
+  'grok-4.20-0309-non-reasoning': {
+    in: 0.00125,
+    out: 0.0025,
+    cachedIn: 0.0002,
+    reasoningInOutput: false,
+    longContext: { above: 199_999, in: 0.0025, out: 0.005, cachedIn: 0.0004 },
+  },
+  'grok-4.20-multi-agent-0309': {
+    in: 0.00125,
+    out: 0.0025,
+    cachedIn: 0.0002,
+    reasoningInOutput: false,
+    longContext: { above: 199_999, in: 0.0025, out: 0.005, cachedIn: 0.0004 },
+  },
+  'grok-build-0.1': {
+    in: 0.001,
+    out: 0.002,
+    cachedIn: 0.0002,
+    reasoningInOutput: false,
+    longContext: { above: 199_999, in: 0.002, out: 0.004, cachedIn: 0.0004 },
+  },
+  // AWS Bedrock (region prefixes like `us.`/`eu.` are stripped during lookup).
+  // $3/$15 confirmed against the AWS Price List API (us-east-1, published 2026-11-09).
   'anthropic.claude-sonnet-4': { in: 0.003, out: 0.015 },
 };
 
