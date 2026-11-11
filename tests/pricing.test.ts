@@ -17,3 +17,13 @@ describe('PRICES table', () => {
     }
   });
 });
+
+describe('다른 모델 요율로 청구되는 폐기 모델', () => {
+  it('gemini-2.5-pro는 3.8-flash 요율보다 싸게 계상하지 않는다 (2026-12-01부터 그 요율로 청구)', () => {
+    const old = PRICES['gemini-2.5-pro'];
+    const billedAs = PRICES['gemini-3.8-flash'];
+    expect(old.in).toBeGreaterThanOrEqual(billedAs.in);
+    expect(old.out).toBeGreaterThanOrEqual(billedAs.out);
+    expect(old.cachedIn).toBeGreaterThanOrEqual(billedAs.cachedIn as number);
+  });
+});

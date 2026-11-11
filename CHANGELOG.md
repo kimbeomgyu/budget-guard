@@ -6,6 +6,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`gemini-2.5-pro` would have under-metered input from 2027** — Google bills
+  requests to it at the Gemini 3.8 Flash rate from 2026-12-01, and that rate's
+  input price becomes $1.50 on 2027-01-01, above the $1.25 the row used. The
+  row now takes the higher of the two rates for each token class, so caps stay
+  conservative before and after the switch.
+
+### Added
+
+- Price rows for models that used to throw `UnknownModelError`:
+  `claude-fable-5-2`, `claude-mythos-5-2`, `gemini-4-carbon`, `gpt-5.3-codex`,
+  `gpt-5.2-pro`, `gpt-5-pro`, `gpt-4.1-mini`, `o3-pro`,
+  `grok-4.20-0309-reasoning`, `grok-4.20-0309-non-reasoning`,
+  `grok-4.20-multi-agent-0309`, `grok-build-0.1` and
+  `deepseek-v4-flash-vision-exp`. `gemini-4-carbon` is metered at the price it
+  moves to on 2026-12-01.
+- `retiresOn` for `gpt-5-mini` and `gpt-5-nano` (2026-12-11), `gpt-4o`,
+  `gpt-4o-mini` and `gpt-4.1` (2027-01-14), `gemini-2.5-pro` and
+  `gemini-2.5-flash` (2026-12-01), and `gemini-3.1-flash-lite` (2027-05-07).
+
 ## [0.7.3] - 2026-11-01
 
 ### Fixed
