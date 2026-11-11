@@ -6,6 +6,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.4] - 2026-11-12
+
 ### Changed
 
 - **`gemini-2.5-pro` would have under-metered input from 2027** — Google bills
@@ -382,7 +384,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `BudgetExceededError`), per-feature cost attribution (`spendReport`), and
   auto-detection of OpenAI / Anthropic usage shapes.
 
-[Unreleased]: https://github.com/kimbeomgyu/budget-guard/compare/v0.7.3...HEAD
+[Unreleased]: https://github.com/kimbeomgyu/budget-guard/compare/v0.7.4...HEAD
+[0.7.4]: https://github.com/kimbeomgyu/budget-guard/compare/v0.7.3...v0.7.4
 [0.7.3]: https://github.com/kimbeomgyu/budget-guard/compare/v0.7.2...v0.7.3
 [0.7.2]: https://github.com/kimbeomgyu/budget-guard/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/kimbeomgyu/budget-guard/compare/v0.7.0...v0.7.1
