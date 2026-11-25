@@ -27,9 +27,12 @@ export function cost(model: string, usage: Usage): number {
   const cachedRate = p.cachedIn ?? p.in;
   // reasoningInOutput=false 제공자(xAI/Gemini)는 output 카운트에 reasoning이 빠져 있어 가산.
   const extraReasoning = p.reasoningInOutput === false ? (usage.reasoning ?? 0) : 0;
-  // 캐시 쓰기는 input에 1×로 이미 들어 있으니 할증분만 더한다: 5분 TTL +0.25×, 1시간 TTL +1×.
+  // 캐시 쓰기는 input에 1×로 이미 들어 있으니 할증분만 더한다:
+  // Anthropic 5분·OpenAI 30분 TTL +0.25×, Anthropic 1시간 TTL +1×, OpenAI 12시간 TTL +1.5×.
   const write1h = usage.cacheWrite1h ?? 0;
-  const writePremium = ((usage.cacheWrite ?? 0) - write1h) * 0.25 + write1h;
+  const write12h = usage.cacheWrite12h ?? 0;
+  const writePremium =
+    ((usage.cacheWrite ?? 0) - write1h - write12h) * 0.25 + write1h + write12h * 1.5;
   return (
     (uncachedInput / 1000) * p.in +
     (cached / 1000) * cachedRate +
