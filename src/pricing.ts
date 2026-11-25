@@ -16,7 +16,19 @@ export type Price = {
 
 // 인트로가·프로모가는 정식가(인상 후 가격)로 계상한다 — 캡 도구라 과대계상이 안전.
 export const PRICES: Record<string, Price> = {
-  // OpenAI — GPT-6 / 5.6 / 5.5 / 5.4 (2026-11-11 공식 가격표). 입력 272K 초과 시 longContext 요율.
+  // OpenAI — GPT-6 / 5.6 / 5.5 / 5.4 (2026-11-25 공식 가격표). 입력 272K 초과 시 longContext 요율.
+  'gpt-6.2-astra': {
+    in: 0.008,
+    out: 0.04,
+    cachedIn: 0.0004,
+    longContext: { above: 272_000, in: 0.016, out: 0.06, cachedIn: 0.0008 },
+  },
+  'gpt-6.2-sol': {
+    in: 0.002,
+    out: 0.01,
+    cachedIn: 0.0001,
+    longContext: { above: 272_000, in: 0.004, out: 0.015, cachedIn: 0.0002 },
+  },
   'gpt-6-astra': {
     in: 0.01,
     out: 0.05,
@@ -90,6 +102,9 @@ export const PRICES: Record<string, Price> = {
   'gpt-5.4-nano': { in: 0.0002, out: 0.00125, cachedIn: 0.00002, retiresOn: '2027-04-01' },
   'gpt-5.3-codex': { in: 0.00175, out: 0.014, cachedIn: 0.000175, retiresOn: '2027-04-01' },
   'gpt-5.2': { in: 0.00175, out: 0.014, cachedIn: 0.000175 },
+  // chat-latest는 ChatGPT 현행 모델을 가리키는 별칭 — 가격표의 ChatGPT 줄 그대로.
+  'chat-latest': { in: 0.005, out: 0.03, cachedIn: 0.0005 },
+  'gpt-5-search-api': { in: 0.00125, out: 0.01, cachedIn: 0.000125 },
   'gpt-5.2-pro': { in: 0.021, out: 0.168 },
   'gpt-5.1': { in: 0.00125, out: 0.01, cachedIn: 0.000125, retiresOn: '2027-04-01' },
   'gpt-5': { in: 0.00125, out: 0.01, cachedIn: 0.000125, retiresOn: '2026-12-11' },
@@ -116,7 +131,7 @@ export const PRICES: Record<string, Price> = {
   'claude-opus-4-8': { in: 0.005, out: 0.025, cachedIn: 0.0005 },
   'claude-opus-4-7': { in: 0.005, out: 0.025, cachedIn: 0.0005 },
   'claude-opus-4-6': { in: 0.005, out: 0.025, cachedIn: 0.0005 },
-  'claude-opus-4-5': { in: 0.005, out: 0.025, cachedIn: 0.0005 },
+  'claude-opus-4-5': { in: 0.005, out: 0.025, cachedIn: 0.0005, retiresOn: '2027-01-22' },
   'claude-sonnet-5-5': { in: 0.002, out: 0.01, cachedIn: 0.0001 },
   // Sonnet 5 인트로가($2/$10)가 2026-09-01부터 정식가로 확정됨
   'claude-sonnet-5': { in: 0.002, out: 0.01, cachedIn: 0.0002 },
@@ -136,6 +151,8 @@ export const PRICES: Record<string, Price> = {
   // gemini-4-carbon/argon은 2026-12-01, 3.8/3.6-flash는 2027-01-01 인상 예정 — 인상가로 계상.
   'gemini-4-carbon': { in: 0.004, out: 0.02, cachedIn: 0.0002, reasoningInOutput: false },
   'gemini-4-argon': { in: 0.004, out: 0.02, cachedIn: 0.0002, reasoningInOutput: false },
+  'gemini-4-neon': { in: 0.003, out: 0.015, cachedIn: 0.00015, reasoningInOutput: false },
+  'gemini-4-hydrogen': { in: 0.0015, out: 0.0075, cachedIn: 0.000075, reasoningInOutput: false },
   'gemini-3.8-flash': { in: 0.0015, out: 0.0075, cachedIn: 0.00015, reasoningInOutput: false },
   'gemini-3.6-flash': { in: 0.0015, out: 0.0075, cachedIn: 0.00015, reasoningInOutput: false },
   'gemini-3.1-pro-preview': {

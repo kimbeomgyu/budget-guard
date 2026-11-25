@@ -6,6 +6,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **OpenAI cache writes were under-metered** — GPT-5.6 and later bill prompt
+  cache writes at 1.25× the input rate (30-minute TTL) or 2.5× (12-hour TTL),
+  and the Responses API reports them in `input_tokens_details.cache_write_tokens`
+  (split by `cache_write_tokens_details.ttl_12h_tokens`). `normalizeUsage` now
+  reads both and `cost()` adds the premium, the same way it already did for
+  Anthropic. New optional `Usage.cacheWrite12h`. The usage example in OpenAI's
+  caching guide, on `gpt-6.1-terra`, now meters $0.01495 of input instead of
+  $0.0082.
+
+### Added
+
+- Price rows for models that used to throw `UnknownModelError`:
+  `gpt-6.2-astra`, `gpt-6.2-sol`, `chat-latest`, `gpt-5-search-api`,
+  `gemini-4-neon` and `gemini-4-hydrogen`.
+- `retiresOn` for `claude-opus-4-5` (2027-01-22).
+
+### Changed
+
+- Dev dependencies (no effect on installs): Biome 2.6.8, vitest 5.1.1,
+  `@langchain/core` 1.5.0, and the Scorecard, CodeQL and gh-release action
+  bumps.
+
 ## [0.7.4] - 2026-11-12
 
 ### Changed

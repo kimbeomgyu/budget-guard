@@ -7,10 +7,12 @@ export interface Usage {
   output: number;
   /** (선택) 입력 중 캐시된 토큰 수 — 보통 할인 요율로 과금됨. */
   cachedInput?: number;
-  /** (선택) 입력 중 캐시에 새로 쓴 토큰 수 — Anthropic은 in 요율의 1.25×(5분 TTL) 과금. */
+  /** (선택) 입력 중 캐시에 새로 쓴 토큰 수 — Anthropic 5분·OpenAI 30분 TTL은 in 요율의 1.25× 과금. */
   cacheWrite?: number;
   /** (선택) cacheWrite 중 1시간 TTL 분량 — in 요율의 2× 과금. */
   cacheWrite1h?: number;
+  /** (선택) cacheWrite 중 OpenAI 12시간 TTL 분량 — in 요율의 2.5× 과금. */
+  cacheWrite12h?: number;
   /** (선택) 추론(thinking) 토큰 수 — 보통 출력 요율로 과금됨. */
   reasoning?: number;
 }

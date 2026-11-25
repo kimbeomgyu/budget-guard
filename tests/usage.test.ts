@@ -56,6 +56,34 @@ describe('normalizeUsage()', () => {
     ).toEqual({ input: 100, output: 5, cachedInput: 80 });
   });
 
+  it('OpenAI Responses 캐시 쓰기(GPT-5.6+)는 cacheWrite로, 12시간 TTL 분량은 cacheWrite12h로', () => {
+    // OpenAI 프롬프트 캐싱 가이드의 예시 응답 그대로 (2026-11-25)
+    expect(
+      normalizeUsage({
+        input_tokens: 12000,
+        output_tokens: 0,
+        input_tokens_details: {
+          cached_tokens: 4000,
+          cache_write_tokens: 7000,
+          cache_write_tokens_details: { ttl_30m_tokens: 3000, ttl_12h_tokens: 4000 },
+        },
+      }),
+    ).toEqual({
+      input: 12000,
+      output: 0,
+      cachedInput: 4000,
+      cacheWrite: 7000,
+      cacheWrite12h: 4000,
+    });
+    expect(
+      normalizeUsage({
+        input_tokens: 12000,
+        output_tokens: 0,
+        input_tokens_details: { cached_tokens: 0, cache_write_tokens: 12000 },
+      }),
+    ).toEqual({ input: 12000, output: 0, cachedInput: 0, cacheWrite: 12000 });
+  });
+
   it('Gemini usageMetadata를 정규화한다 (cachedContent→cachedInput, thoughts→reasoning)', () => {
     expect(
       normalizeUsage({

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { cost } from '../src/cost';
+import { normalizeUsage } from '../src/usage';
 
 describe('cost()', () => {
   it('토큰 사용량을 가격표로 USD 비용으로 환산한다', () => {
@@ -36,6 +37,21 @@ describe('cost()', () => {
     expect(
       cost('claude-sonnet-4-6', { input: 1000, output: 0, cacheWrite: 1000, cacheWrite1h: 400 }),
     ).toBeCloseTo((1550 / 1000) * 0.003, 10);
+  });
+
+  it('OpenAI 캐시 쓰기는 30분 TTL 1.25×, 12시간 TTL 2.5× in 요율', () => {
+    // 가이드 예시 usage를 gpt-6.1-terra($1 in, $0.05 cached)로: 일반 1000 + 읽기 4000×0.05
+    // + 30분 쓰기 3000×1.25 + 12시간 쓰기 4000×2.5 = 14950 토큰분 → $0.01495
+    const usage = normalizeUsage({
+      input_tokens: 12000,
+      output_tokens: 0,
+      input_tokens_details: {
+        cached_tokens: 4000,
+        cache_write_tokens: 7000,
+        cache_write_tokens_details: { ttl_30m_tokens: 3000, ttl_12h_tokens: 4000 },
+      },
+    });
+    expect(cost('gpt-6.1-terra', usage)).toBeCloseTo(0.01495, 10);
   });
 
   it('cachedIn 요율이 없으면 캐시분도 in 요율로 과금한다', () => {

@@ -11,7 +11,11 @@ export class UnknownUsageShapeError extends Error {
 type RawUsage = Record<string, unknown> & {
   prompt_tokens_details?: { cached_tokens?: number };
   completion_tokens_details?: { reasoning_tokens?: number };
-  input_tokens_details?: { cached_tokens?: number };
+  input_tokens_details?: {
+    cached_tokens?: number;
+    cache_write_tokens?: number;
+    cache_write_tokens_details?: { ttl_12h_tokens?: number };
+  };
   output_tokens_details?: { reasoning_tokens?: number };
   cache_creation?: { ephemeral_1h_input_tokens?: number };
   billed_units?: { input_tokens?: number; output_tokens?: number };
@@ -66,11 +70,19 @@ export function normalizeUsage(raw: unknown): Usage {
       }
       return usage;
     }
-    return withExtras(
+    const usage = withExtras(
       { input: u.input_tokens, output: num(u.output_tokens) ?? 0 },
       num(u.cache_read_input_tokens) ?? num(u.input_tokens_details?.cached_tokens),
       num(u.output_tokens_details?.reasoning_tokens),
     );
+    // OpenAI Responses (GPT-5.6+): 캐시 쓰기도 input_tokens 안에 있고 TTL별 할증이 붙는다.
+    const owrite = num(u.input_tokens_details?.cache_write_tokens);
+    if (owrite) {
+      usage.cacheWrite = owrite;
+      const w12h = num(u.input_tokens_details?.cache_write_tokens_details?.ttl_12h_tokens);
+      if (w12h) usage.cacheWrite12h = w12h;
+    }
+    return usage;
   }
   // Google Gemini (usageMetadata) — promptTokenCount includes the cached subset
   if (typeof u.promptTokenCount === 'number') {
